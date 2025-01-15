@@ -1,14 +1,52 @@
-# Project
+# Magma: Multimodal Agentic Models
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Magma: A multimodal agentic foundation for multimodal understanding and agentic tasks.
 
-As the maintainer of this project, please make a few updates:
+## Introduction
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+Magma is a multimodal agentic AI model that can generate text based on the input text and image. The model is designed for research purposes and aimed at knowledge-sharing and accelerating research in multimodal AI, in particular the multimodal agentic AI. The main innovation of this model lies on the introduction of two technical innovations: Set-of-Mark and Trace-of-Mark, and the leverage of a large-amount of unlabeled video data to learn the spatial-temporal grounding and planning. Please refer to our paper for more technical details. The model is developed by Microsoft and is funded by Microsoft Research. 
+
+## Model Usage
+
+### Direct Use
+
+<!-- This section is for the model use without fine-tuning or plugging into a larger ecosystem/app. -->
+
+This model is intended for broad research use in English. The model take images and text as inputs, and produces the textual outputs for the following uses:
+
+* **Image/Video-Conditoned Text Generation:** The model can generate text (e.g., descriptions, answers) based on the input text and image.
+
+* **Visual Planning Capabilities:** The model can also produce the visual trace as the future planning to accomplish a task (e.g., move object from one place to another).
+
+* **Agentic Capabilities:** The model can also generate UI grounding (e.g., click ``search'' button) and robotics manipulations (e.g., 7 DoF for the robot gripper).
+
+Our model is designed only for research purpose and aimed at knowledge-sharing and accelerating research in multimodal AI, in particularly the mutimodal agentic AI.
+
+### Downstream Use
+
+The model can be further finetuned for different downstream tasks, such as:
+
+* **Image Captioning and QA:** We can further finetune this model for image captioning and QA tasks under the pipeline of multimodal LLMs. Based on our experiments, the model can achieve competitive performance yet better spatial understanding and reasoning on these tasks.
+
+* **Video Captioning and QA:** We can further finetune this model for video captioning and QA tasks under the pipeline of multimodal LLMs. Based on our experiments, the model can achieve competitive performance yet better temporal understanding and reasoning on these tasks.
+
+* **UI Navigation:** We can finetune this model for specific UI navigation tasks, such as web navigation or mobile navigation. The model can achieve superior performance on these tasks.
+
+* **Robotics Manipulation:** Our model can be further finetuned for robotics tasks given its general agentic capabilities as a vision-language-action model. After finetuning, our model significantly outperms the state-of-the-art models such as OpenVLA on robotics manipulation tasks.
+
+<!-- This section is for the model use when fine-tuned for a task, or when plugged into a larger ecosystem/app -->
+
+<!-- {{ downstream_use | default("[More Information Needed]", true)}} -->
+
+<!-- ### Out-of-Scope Use -->
+
+<!-- This section addresses misuse, malicious use, and uses that the model will not work well for. -->
+
+<!-- {{ out_of_scope_use | default("[More Information Needed]", true)}} -->
+
+## Bias, Risks, and Limitations
+
+Please note that this model is not specifically designed or evaluated for all downstream purposes. Developers should consider common limitations of language models as they select use cases, and evaluate and mitigate for accuracy, safety, and fairness before using within a specific downstream use case, particularly for high-risk scenarios. Developers should be aware of and adhere to applicable laws or regulations (including privacy, trade compliance laws, etc.) that are relevant to their use case.
 
 ## Contributing
 
