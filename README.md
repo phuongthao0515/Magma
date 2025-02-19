@@ -29,6 +29,12 @@
 <img src="assets/images/magma_teaser.png?raw=true" width="100%">
 </div>
 
+## :sparkles: Highlights
+* **Digital and Physical Worlds:** Magma is the first-ever foundation model for multimodal AI agents, designed to handle complex interactions across both virtual and real environments!
+* **Versatile Capabilities:** Magma as a single model not only posseesses generic image and videos understanding ability, but alse generate goal-driven visual plans and actions, making it versatile for different agentic tasks!
+* **State-of-the-art Performance:** Magma achieves state-of-the-art performance on various multimodal tasks, including UI navigation, robotics manipulation, as well as generic image and video understanding, in particular the spatial understanding and reasoning!
+* **Scalable Pretraining Strategy:** Magma is designed to be learned scalably from unlabeled videos in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
+
 ## :fire: News
 * **[2025.02.18]**  Our Flagship Project Magma at MSR is released on [arXiv](https://www.arxiv.org/pdf/2502.13130)!
 
@@ -52,13 +58,7 @@ We will be releasing all the following contents:
 * **Verbal and spatial-temporal intelligence:** Magma is supposed to have both strong verbal and spatial-temporal intelligence to understand images and videos, ground its actions on the observations, and further translate the external goal into action plan and executions.
 * **Digial and physical world:** Magma should not be limited to either the digital world (e.g., web navigation) or the physical world (e.g., robotics manipulation), but rather be able to work across both worlds, just like humans ourselves.
 
-It a large-scale vision-language-action model that can generate text, visual plans, and robotic actions based on the input text and images. Magma is trained on a large-scale dataset, and it achieves state-of-the-art performance on various multimodal tasks, including generic image and video understanding, UI navigation, and robotics manipulation. Magma is designed to be a general-purpose model for multimodal AI agents, and it can be easily adapted to different tasks and domains. It is also designed to be efficient and scalable, making it suitable for real-world applications.
-
-## :sparkles: Highlights
-* **Multimodal Understanding:** Magma has strong verbal and spatial intelligence to understand images and videos, making it suitable for a wide range of multimodal tasks.
-* **General Agentic Capabilities:** Magma can generate visual plans and robotic actions, making it suitable for robotics and agentic tasks.
-* **State-of-the-art Performance:** Magma achieves state-of-the-art performance on various multimodal tasks, including image captioning, video captioning, UI navigation, and robotics manipulation.
-* **Efficient and Scalable:** Magma is designed to be efficient and scalable, making it suitable for real-world applications.
+With this in mind, we developed a new pretraining data, which mostly consists of unlabeled videos in the wild plus the existing annotated agentic data, and a new pretraining framework, which unifies the training of all three modalities (text, image, and action), to train a new foundation model for multimodal AI agents, named Magma.
 
 ## How we pretrain Magma?
 
