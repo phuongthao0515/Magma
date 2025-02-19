@@ -41,7 +41,11 @@
 
 ## :movie_camera: Demo Videos
 ##### Mobile tasks: (1) What's weather in Seattle? (2) Turn on flight mode
-https://github.com/microsoft/Magma/blob/homepage/static/videos/ui_weather_and_flight_mode.mp4
+<div align="center">
+<video width="100%" controls>
+  <source src="https://github.com/microsoft/Magma/blob/homepage/static/videos/ui_weather_and_flight_mode.mp4" type="video/mp4">
+</video>
+</div>
 
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
