@@ -1,10 +1,53 @@
-# Magma: Multimodal Agentic Models
+<div align="center">
+<h2>Magma: A Foundation Model for Multimodal AI Agents</h2>
 
-Magma: A multimodal agentic foundation for multimodal understanding and agentic tasks.
+[Jianwei Yang](https://jwyang.github.io/)<sup>*</sup><sup>1</sup><sup>†</sup>&nbsp;
+[Reuben Tan](https://cs-people.bu.edu/rxtan/)<sup>1</sup><sup>†</sup>&nbsp;
+[Qianhui Wu](https://qianhuiwu.github.io/)<sup>1</sup><sup>†</sup>&nbsp;
+[Ruijie Zheng](https://ruijiezheng.com/)<sup>2</sup><sup>‡</sup>&nbsp;
+[Baolin Peng](https://scholar.google.com/citations?user=u1CNjgwAAAAJ&hl=en&oi=ao)<sup>1</sup><sup>‡</sup>&nbsp;
+[Yongyuan Liang](https://cheryyunl.github.io)<sup>2</sup><sup>‡</sup>
 
-## Introduction
+[Yu Gu](https://users.umiacs.umd.edu/~hal/)<sup>1</sup>&nbsp;
+[Mu Cai](https://pages.cs.wisc.edu/~mucai/)<sup>3</sup>&nbsp;
+[Seonghyeon Ye](https://seonghyeonye.github.io/)<sup>4</sup>&nbsp;
+[Joel Jang](https://joeljang.github.io/)<sup>5</sup>&nbsp;
+[Yuquan Deng](https://scholar.google.com/citations?user=LTC0Q6YAAAAJ&hl=en)<sup>5</sup>&nbsp;
+[Lar Liden](https://sites.google.com/site/larsliden)<sup>1</sup>&nbsp;
+[Jianfeng Gao](https://www.microsoft.com/en-us/research/people/jfgao/)<sup>1</sup><sup>▽</sup>
 
-Magma is a multimodal agentic AI model that can generate text based on the input text and image. The model is designed for research purposes and aimed at knowledge-sharing and accelerating research in multimodal AI, in particular the multimodal agentic AI. The main innovation of this model lies on the introduction of two technical innovations: Set-of-Mark and Trace-of-Mark, and the leverage of a large-amount of unlabeled video data to learn the spatial-temporal grounding and planning. Please refer to our paper for more technical details. The model is developed by Microsoft and is funded by Microsoft Research. 
+<sup>1</sup> Microsoft Research; <sup>2</sup> University of Maryland; <sup>3</sup> University of Wisconsin-Madison  
+<sup>4</sup> KAIST; <sup>5</sup> University of Washington
+
+<sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
+
+\[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://effective-robot-9p5jy3n.pages.github.io/)\] &nbsp; \[[Model Coming Soon!](https://github.com/microsoft/Magma)\] &nbsp; 
+
+</div>
+
+<div align="center">
+<img src="assets/images/magma_teaser.png?raw=true" width="100%">
+</div>
+
+## What is Magma?
+
+Magma is the first ever foundation model for multimodal AI agents. It is a large-scale vision-language-action model that can generate text, visual plans, and robotic actions based on the input text and images. Magma is trained on a large-scale dataset of 1.5M image-text-action pairs, and it achieves state-of-the-art performance on various multimodal tasks, including generic image and video understanding, UI navigation, and robotics manipulation. Magma is designed to be a general-purpose model for multimodal AI agents, and it can be easily adapted to different tasks and domains. It is also designed to be efficient and scalable, making it suitable for real-world applications.
+## :sparkles: Features
+* **Multimodal Understanding:** Magma has strong verbal and spatial intelligence to understand images and videos, making it suitable for a wide range of multimodal tasks.
+* **General Agentic Capabilities:** Magma can generate visual plans and robotic actions, making it suitable for robotics and agentic tasks.
+* **State-of-the-art Performance:** Magma achieves state-of-the-art performance on various multimodal tasks, including image captioning, video captioning, UI navigation, and robotics manipulation.
+* **Efficient and Scalable:** Magma is designed to be efficient and scalable, making it suitable for real-world applications.
+
+## :rocket: Updates
+* **[2025.02.18]**  Our flagship Project Magma at MSR is released on arXiv!
+
+## :bookmark_tabs: Todos
+We release the following contents for **Magma**:exclamation:
+- [ ] Demo Code
+- [ ] Model Checkpoint
+- [ ] Comprehensive User Guide
+- [ ] Training Code
+- [ ] Evaluation Code
 
 ## Model Usage
 
@@ -33,16 +76,6 @@ The model can be further finetuned for different downstream tasks, such as:
 * **UI Navigation:** We can finetune this model for specific UI navigation tasks, such as web navigation or mobile navigation. The model can achieve superior performance on these tasks.
 
 * **Robotics Manipulation:** Our model can be further finetuned for robotics tasks given its general agentic capabilities as a vision-language-action model. After finetuning, our model significantly outperms the state-of-the-art models such as OpenVLA on robotics manipulation tasks.
-
-<!-- This section is for the model use when fine-tuned for a task, or when plugged into a larger ecosystem/app -->
-
-<!-- {{ downstream_use | default("[More Information Needed]", true)}} -->
-
-<!-- ### Out-of-Scope Use -->
-
-<!-- This section addresses misuse, malicious use, and uses that the model will not work well for. -->
-
-<!-- {{ out_of_scope_use | default("[More Information Needed]", true)}} -->
 
 ## Bias, Risks, and Limitations
 
