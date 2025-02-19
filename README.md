@@ -30,7 +30,7 @@
 </div>
 
 ## :fire: News
-* **[2025.02.18]**  Our flagship Project Magma at MSR is released on [arXiv](https://www.arxiv.org/pdf/2502.13130)!
+* **[2025.02.18]**  Our Flagship Project Magma at MSR is released on [arXiv](https://www.arxiv.org/pdf/2502.13130)!
 
 ## What is Magma?
 
@@ -38,10 +38,17 @@
 <img src="assets/images/magma_intro_fig.png?raw=true" width="50%">
 </div>
 
-**Magma is a foundation model for multimodal AI agents**. As the basis for agentic models, it should possesse strong capabilities for both perceiving the multimodal world AND precisely taking goal-driven actions (see above figure). With this in mind, we are striving for the following goals:
+**Magma is a foundation model for multimodal AI agents**. As the bedrock for mutimodal agentic models, it should possesse strong capabilities to perceive the multimodal groundingly world AND take goal-driven actions precisely (see above figure). With this in mind, we are striving for the following goals:
 
 * **Verbal and spatial-temporal intelligence:** Magma is supposed to have both strong verbal and spatial-temporal intelligence to understand images and videos, ground its actions on the observations, and further translate the external goal into action plan and executions.
 * **Digial and physical world:** Magma should not be limited to either the digital world (e.g., web navigation) or the physical world (e.g., robotics manipulation), but rather be able to work across both worlds, just like humans ourselves.
+
+We pursue this goal through two dimensions:
+
+* **Universal pretraining objectives"": texts and actions are inherently different and thus cause a huge gap, while visual tokens are continuous. We propose a universal pretraining framework that unifies the training of all three modalities, and we show that this is crucial for the model to learn the cross-modal connections.
+
+* ""Large-scale hetergeneous training data"":
+
 
 It a large-scale vision-language-action model that can generate text, visual plans, and robotic actions based on the input text and images. Magma is trained on a large-scale dataset, and it achieves state-of-the-art performance on various multimodal tasks, including generic image and video understanding, UI navigation, and robotics manipulation. Magma is designed to be a general-purpose model for multimodal AI agents, and it can be easily adapted to different tasks and domains. It is also designed to be efficient and scalable, making it suitable for real-world applications.
 
@@ -55,6 +62,20 @@ It a large-scale vision-language-action model that can generate text, visual pla
 
 <div align="center">
 <img src="assets/images/magma_pt_v3.png?raw=true" width="100%">
+</div>
+
+
+We developed two new techniques to significantly improve the pretraining of Magma:
+
+* **Set-of-Mark prediction for Action Grounding:**
+
+<div align="center">
+<img src="assets/images/som_flatten.png?raw=true" width="80%">
+</div>
+
+* **Trace-of-Mark prediction for Action Planning:**
+<div align="center">
+<img src="assets/images/tom_fig.png?raw=true" width="80%">
 </div>
 
 ## :bookmark_tabs: Todos
