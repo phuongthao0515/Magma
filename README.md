@@ -29,17 +29,18 @@
 <img src="assets/images/magma_teaser.png?raw=true" width="100%">
 </div>
 
+## :fire: News
+* **[2025.02.18]**  Our flagship Project Magma at MSR is released on arXiv!
+
 ## What is Magma?
 
 Magma is the first ever foundation model for multimodal AI agents. It is a large-scale vision-language-action model that can generate text, visual plans, and robotic actions based on the input text and images. Magma is trained on a large-scale dataset of 1.5M image-text-action pairs, and it achieves state-of-the-art performance on various multimodal tasks, including generic image and video understanding, UI navigation, and robotics manipulation. Magma is designed to be a general-purpose model for multimodal AI agents, and it can be easily adapted to different tasks and domains. It is also designed to be efficient and scalable, making it suitable for real-world applications.
+
 ## :sparkles: Features
 * **Multimodal Understanding:** Magma has strong verbal and spatial intelligence to understand images and videos, making it suitable for a wide range of multimodal tasks.
 * **General Agentic Capabilities:** Magma can generate visual plans and robotic actions, making it suitable for robotics and agentic tasks.
 * **State-of-the-art Performance:** Magma achieves state-of-the-art performance on various multimodal tasks, including image captioning, video captioning, UI navigation, and robotics manipulation.
 * **Efficient and Scalable:** Magma is designed to be efficient and scalable, making it suitable for real-world applications.
-
-## :rocket: Updates
-* **[2025.02.18]**  Our flagship Project Magma at MSR is released on arXiv!
 
 ## :bookmark_tabs: Todos
 We release the following contents for **Magma**:exclamation:
