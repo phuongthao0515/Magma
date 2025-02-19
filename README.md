@@ -39,14 +39,6 @@
 * **[2025.02.19]**  We will be releasing our code, model and UI navigation demo at [MSR Forum on 02.25 next Tuesday](https://researchforum.microsoft.com/)!
 * **[2025.02.18]**  Our Flagship Project Magma at MSR is released on [arXiv](https://www.arxiv.org/pdf/2502.13130)!
 
-## :movie_camera: Demo Videos
-##### Mobile tasks: (1) What's weather in Seattle? (2) Turn on flight mode
-<div align="center">
-<video width="100%" controls>
-  <source src="assets/videos/ui_mobile.mp4" type="video/mp4">
-</video>
-</div>
-
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
 - [ ] Model inference code
