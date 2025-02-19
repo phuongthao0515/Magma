@@ -1,5 +1,5 @@
 <div align="center">
-<h2>Magma: A Foundation Model for Multimodal AI Agents</h2>
+<img src="assets/images/magma_logo.png" alt="Logo" style="width:50px; height:50px; vertical-align:middle;"> <h1 style="display:inline;">Magma: A Foundation Model for Multimodal AI Agents</h1>
 
 [Jianwei Yang](https://jwyang.github.io/)<sup>*</sup><sup>1</sup><sup>†</sup>&nbsp;
 [Reuben Tan](https://cs-people.bu.edu/rxtan/)<sup>1</sup><sup>†</sup>&nbsp;
