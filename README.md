@@ -21,7 +21,7 @@
 
 <sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
 
-\[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://effective-robot-9p5jy3n.pages.github.io/)\] &nbsp; \[[Model Coming Soon!](https://github.com/microsoft/Magma)\] &nbsp; 
+\[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://microsoft.github.io/Magma/)\] &nbsp; \[[Model Coming Soon!](https://github.com/microsoft/Magma)\] &nbsp; 
 
 </div>
 
