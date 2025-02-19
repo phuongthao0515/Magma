@@ -30,7 +30,7 @@
 </div>
 
 ## :fire: News
-* **[2025.02.18]**  Our flagship Project Magma at MSR is released on arXiv!
+* **[2025.02.18]**  Our flagship Project Magma at MSR is released on [arXiv](https://www.arxiv.org/pdf/2502.13130)!
 
 ## What is Magma?
 
@@ -41,6 +41,12 @@ Magma is the first ever foundation model for multimodal AI agents. It is a large
 * **General Agentic Capabilities:** Magma can generate visual plans and robotic actions, making it suitable for robotics and agentic tasks.
 * **State-of-the-art Performance:** Magma achieves state-of-the-art performance on various multimodal tasks, including image captioning, video captioning, UI navigation, and robotics manipulation.
 * **Efficient and Scalable:** Magma is designed to be efficient and scalable, making it suitable for real-world applications.
+
+## How we pretrain Magma?
+
+<div align="center">
+<img src="assets/images/magma_pt_v3.png?raw=true" width="100%">
+</div>
 
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
@@ -103,7 +109,7 @@ If you use this model in your research, please consider citing:
 
 Our work is supported by Microsoft Research. We thank all the contributors for their efforts in building this project. 
 
-Our work is built on top of some amazing open-source projects, including [Transformers](https://github.com/huggingface/transformers), [LLaVA](https://github.com/haotian-liu/LLaVA), [OpenVLA](https://github.com/openvla/openvla), [SeeClick](https://github.com/njucckevin/SeeClick), [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web), and also a number of awesome open-source datasets, including [Ego4d](https://ego4d-data.org/), [Epic-Kitchen](https://epic-kitchens.github.io/2025), [Something-Somethingv2](https://www.qualcomm.com/developer/artificial-intelligence/datasets), [Open-X-Embodiment](https://robotics-transformer-x.github.io/).
+Our work is built on top of some amazing open-source projects, including [Transformers](https://github.com/huggingface/transformers), [LLaVA](https://github.com/haotian-liu/LLaVA), [OpenVLA](https://github.com/openvla/openvla), [SeeClick](https://github.com/njucckevin/SeeClick), [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web), and also a number of awesome open-source datasets, including [Ego4d](https://ego4d-data.org/), [Epic-Kitchen](https://epic-kitchens.github.io/2025), [Something-Somethingv2](https://www.qualcomm.com/developer/artificial-intelligence/datasets), [Open-X-Embodiment](https://robotics-transformer-x.github.io/), and a number of evaluation benchmarks, including [SimplerEnv](https://github.com/simpler-env/SimplerEnv), [Libero](https://github.com/Lifelong-Robot-Learning/LIBERO).
 
 ## License
 
