@@ -82,6 +82,34 @@ The model can be further finetuned for different downstream tasks, such as:
 
 Please note that this model is not specifically designed or evaluated for all downstream purposes. Developers should consider common limitations of language models as they select use cases, and evaluate and mitigate for accuracy, safety, and fairness before using within a specific downstream use case, particularly for high-risk scenarios. Developers should be aware of and adhere to applicable laws or regulations (including privacy, trade compliance laws, etc.) that are relevant to their use case.
 
+
+## Citation
+If you use this model in your research, please consider citing:
+
+```bibtex
+@misc{yang2025magmafoundationmodelmultimodal,
+      title={Magma: A Foundation Model for Multimodal AI Agents}, 
+      author={Jianwei Yang and Reuben Tan and Qianhui Wu and Ruijie Zheng and Baolin Peng and Yongyuan Liang and Yu Gu and Mu Cai and Seonghyeon Ye and Joel Jang and Yuquan Deng and Lars Liden and Jianfeng Gao},
+      year={2025},
+      eprint={2502.13130},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2502.13130}, 
+}
+```
+
+## Acknowledgements
+
+Our work is supported by Microsoft Research. We thank all the contributors for their efforts in building this project. 
+
+Our work is built on top of some amazing open-source projects, including [Transformers](https://github.com/huggingface/transformers), [LLaVA](https://github.com/haotian-liu/LLaVA), [OpenVLA](https://github.com/openvla/openvla), [SeeClick](https://github.com/njucckevin/SeeClick), [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web).
+
+And also a number of awesome open-source datasets, including [Ego4d](https://ego4d-data.org/), [Epic-Kitchen](https://epic-kitchens.github.io/2025), [Something-Somethingv2](https://www.qualcomm.com/developer/artificial-intelligence/datasets), [Open-X-Embodiment](https://robotics-transformer-x.github.io/).
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
