@@ -66,13 +66,13 @@ With this in mind, we developed a new pretraining data, which mostly consists of
 <img src="assets/images/magma_pt_v3.png?raw=true" width="100%">
 </div>
 
-We pursue this goal through two dimensions:
+We pursue the goal through two dimensions:
 
-* ""Large-scale hetergeneous training data"":
+* ""Large-scale hetergeneous training data"": we curage a large amount of data in the wild, including existing multimodal understanding data, UI navigation data, and robotics manipulation data, and unlabeled videos in the wild. We also propose a new data collection pipeline to collect unlabeled videos in the wild, which is scalable and cost-effective. To attain useful action supervision from raw videos and robotics trajectories, we meticulously removed the camera motions in the videos and then transform the motions into "action" supervisions for our model training. These provide unique signals for the model to learn the cross-modal connections and long-horizong action prediction and planning.
 
-* **Universal pretraining objectives"": texts and actions are inherently different and thus cause a huge gap, while visual tokens are continuous. We propose a universal pretraining framework that unifies the training of all three modalities, and we show that this is crucial for the model to learn the cross-modal connections.
+* **Universal pretraining objectives"": texts and actions are inherently different and thus cause a huge gap, while visual tokens are continuous. We propose a universal pretraining framework that unifies the training of all three modalities, and we show that this is crucial for the model to learn the cross-modal connections. More specifically, we proposed Set-of-Mark and Trace-of-Mark as the auxiliary tasks for our model pretraining, as the bridge of different output modalities. In this way, we are building a great alignment between the text and action modalities, and also between the image and action modalities.
 
-We developed two new techniques to significantly improve the pretraining of Magma:
+<!-- We developed two new techniques to significantly improve the pretraining of Magma:
 
 * **Set-of-Mark prediction for Action Grounding:**
 
@@ -83,7 +83,7 @@ We developed two new techniques to significantly improve the pretraining of Magm
 * **Trace-of-Mark prediction for Action Planning:**
 <div align="center">
 <img src="assets/images/tom_fig.png?raw=true" width="80%">
-</div>
+</div> -->
 
 ## Model Usage
 
