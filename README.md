@@ -36,16 +36,16 @@
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
 ## :fire: News
+* **[2025.02.19]**  We will be releasing our code, model and UI navigation demo at [MSR Forum on 02.25 next Tuesday](https://researchforum.microsoft.com/)!
 * **[2025.02.18]**  Our Flagship Project Magma at MSR is released on [arXiv](https://www.arxiv.org/pdf/2502.13130)!
 
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
-- [ ] Demo code
+- [ ] Model inference code
 - [ ] Model checkpoint
 - [ ] Comprehensive user guide
-- [ ] Pretraining and downstream finetuning code
-- [ ] Pretraining data and downstream finetuning data
-- [ ] Evaluation code
+- [ ] Pretraining code
+- [ ] Pretraining data
 
 ## What is Magma?
 
