@@ -43,12 +43,13 @@ Magma is the first ever foundation model for multimodal AI agents. It is a large
 * **Efficient and Scalable:** Magma is designed to be efficient and scalable, making it suitable for real-world applications.
 
 ## :bookmark_tabs: Todos
-We release the following contents for **Magma**:exclamation:
-- [ ] Demo Code
-- [ ] Model Checkpoint
-- [ ] Comprehensive User Guide
-- [ ] Training Code
-- [ ] Evaluation Code
+We will be releasing all the following contents:
+- [ ] Demo code
+- [ ] Model checkpoint
+- [ ] Comprehensive user guide
+- [ ] Pretraining and downstream finetuning code
+- [ ] Pretraining data and downstream finetuning data
+- [ ] Evaluation code
 
 ## Model Usage
 
@@ -102,9 +103,7 @@ If you use this model in your research, please consider citing:
 
 Our work is supported by Microsoft Research. We thank all the contributors for their efforts in building this project. 
 
-Our work is built on top of some amazing open-source projects, including [Transformers](https://github.com/huggingface/transformers), [LLaVA](https://github.com/haotian-liu/LLaVA), [OpenVLA](https://github.com/openvla/openvla), [SeeClick](https://github.com/njucckevin/SeeClick), [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web).
-
-And also a number of awesome open-source datasets, including [Ego4d](https://ego4d-data.org/), [Epic-Kitchen](https://epic-kitchens.github.io/2025), [Something-Somethingv2](https://www.qualcomm.com/developer/artificial-intelligence/datasets), [Open-X-Embodiment](https://robotics-transformer-x.github.io/).
+Our work is built on top of some amazing open-source projects, including [Transformers](https://github.com/huggingface/transformers), [LLaVA](https://github.com/haotian-liu/LLaVA), [OpenVLA](https://github.com/openvla/openvla), [SeeClick](https://github.com/njucckevin/SeeClick), [Mind2Web](https://github.com/OSU-NLP-Group/Mind2Web), and also a number of awesome open-source datasets, including [Ego4d](https://ego4d-data.org/), [Epic-Kitchen](https://epic-kitchens.github.io/2025), [Something-Somethingv2](https://www.qualcomm.com/developer/artificial-intelligence/datasets), [Open-X-Embodiment](https://robotics-transformer-x.github.io/).
 
 ## License
 
