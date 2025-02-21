@@ -13,7 +13,7 @@
 [Seonghyeon Ye](https://seonghyeonye.github.io/)<sup>4</sup>&nbsp;
 [Joel Jang](https://joeljang.github.io/)<sup>5</sup>&nbsp;
 [Yuquan Deng](https://scholar.google.com/citations?user=LTC0Q6YAAAAJ&hl=en)<sup>5</sup>&nbsp;
-[Lar Liden](https://sites.google.com/site/larsliden)<sup>1</sup>&nbsp;
+[Lars Liden](https://sites.google.com/site/larsliden)<sup>1</sup>&nbsp;
 [Jianfeng Gao](https://www.microsoft.com/en-us/research/people/jfgao/)<sup>1</sup><sup>▽</sup>
 
 <sup>1</sup> Microsoft Research; <sup>2</sup> University of Maryland; <sup>3</sup> University of Wisconsin-Madison  
