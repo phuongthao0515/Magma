@@ -120,7 +120,7 @@ We have uploaded the model to Huggingface Hub. You can easily load the model and
 <details>
 <summary>Click to expand</summary>
 
-```bash
+```python
 from PIL import Image
 import torch
 from transformers import AutoModelForCausalLM
@@ -167,7 +167,7 @@ If you want to debug our model, we also provide a local code for inference. You 
 <details>
 <summary>Click to expand</summary>
 
-```bash
+```python
 from magma.processing_magma import MagmaProcessor
 from magma.modeling_magma import MagmaForCausalLM
 
@@ -180,9 +180,9 @@ model.to("cuda")
 
 ### Evaluation with lmms-eval
 
-To faciliate the quantitative evaluation of our model, we also provide a model class for [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval). Please refer to [lmms-eval-magma](./lmms-eval-magma) for the code.
+To faciliate the quantitative evaluation of our model, we also provide a model class for [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval). Please refer to [lmms-eval-magma](./tools/lmms-eval-magma) for the code.
 
-After installing lmms-eval, copy the 'lmms_eval_magma/magma.py' to the 'lmms-eval/lmms-eval/models' folder.
+After installing lmms-eval, copy 'tools/lmms_eval_magma/magma.py' to 'lmms-eval/lmms-eval/models' folder.
 
 Remember to register our model by modifying the 'lmms-eval/lmms_eval/models/__init__.py' file as follows:
 
