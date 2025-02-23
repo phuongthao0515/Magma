@@ -177,9 +177,32 @@ model.to("cuda")
 ```
 </details>
 
-### Direct Use
+
+### Evaluation with lmms-eval
+
+To faciliate the quantitative evaluation of our model, we also provide a model class for [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval). Please refer to [lmms-eval-magma](./lmms-eval-magma) for the code.
+
+After installing lmms-eval, copy the 'lmms_eval_magma/magma.py' to the 'lmms-eval/lmms-eval/models' folder.
+
+Remember to register our model by modifying the 'lmms-eval/lmms_eval/models/__init__.py' file as follows:
+
+```python
+AVAILABLE_MODELS = {
+    # many previous registered models
+    "magma": Magma,
+}
+```
+
+Once everything is ready, you can run the following code to evaluate our model.
+
+```bash
+sh scripts/lmms_eval_magma.sh
+```
+
+## User Guidance
 
 <!-- This section is for the model use without fine-tuning or plugging into a larger ecosystem/app. -->
+### Direct use
 
 This model is intended for broad research use in English. The model take images and text as inputs, and produces the textual outputs for the following uses:
 
