@@ -42,7 +42,7 @@
 
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
-- [ ] Model inference code
+- [x] Model inference code
 - [ ] Model checkpoint
 - [ ] Comprehensive user guide
 - [ ] Pretraining code
@@ -86,7 +86,94 @@ We pursue the goal through two dimensions:
 <img src="assets/images/tom_fig.png?raw=true" width="80%">
 </div> -->
 
+## Installation
+
+1. Clong this repo to your local machine:
+
+```bash
+git clone https://github.com/microsoft/Magma
+cd Magma
+```
+2. Install the dependencies:
+
+```bash
+conda create -n magma python=3.10 -y
+conda activate magma
+pip install --upgrade pip  # enable PEP 660 support
+pip install -e .
+```
+
+3. Install packages for training:
+
+```bash
+pip install -e ".[train]"
+pip install flash-attn --no-build-isolation
+```
+
+
 ## Model Usage
+
+### Inference with Huggingface Transformers
+
+We have uploaded the model to Huggingface Hub. You can easily load the model and processor with the following code.
+</details>
+<summary>Inference Code</summary>
+
+```bash
+from PIL import Image
+import torch
+from transformers import AutoModelForCausalLM
+from transformers import AutoProcessor 
+
+model = AutoModelForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
+processor = AutoProcessor.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
+model.to("cuda")
+
+# Inference
+image = Image.open("./assets/images/magma_logo.jpg").convert("RGB")
+
+convs = [
+    {"role": "system", "content": "You are agent that can see, talk and act."},            
+    {"role": "user", "content": "<image_start><image><image_end>\nWhat is the letter on the robot?"},
+]
+prompt = processor.tokenizer.apply_chat_template(convs, tokenize=False, add_generation_prompt=True)
+inputs = processor(images=[image], texts=prompt, return_tensors="pt")
+inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
+inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)
+inputs = inputs.to("cuda")
+
+generation_args = { 
+    "max_new_tokens": 500, 
+    "temperature": 0.0, 
+    "do_sample": False, 
+    "use_cache": True,
+    "num_beams": 1,
+} 
+
+with torch.inference_mode():
+    generate_ids = model.generate(**inputs, **generation_args)
+
+generate_ids = generate_ids[:, inputs["input_ids"].shape[-1] :]
+response = processor.decode(generate_ids[0], skip_special_tokens=True).strip()
+
+print(response)
+```
+</details>
+
+### Inference with local model code from this repo
+
+If you want to debug our model, we also provide a local code for inference. You can run the following code to load the model.
+</details>
+<summary>Inference Code</summary>
+
+```bash
+from magma.processing_magma import MagmaProcessor
+from magma.modeling_magma import MagmaForCausalLM
+
+model = MagmaForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
+processor = MagmaProcessor.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
+model.to("cuda")
+```
 
 ### Direct Use
 
