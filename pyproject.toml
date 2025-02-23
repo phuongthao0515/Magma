@@ -24,7 +24,7 @@ dependencies = [
     "markdown2[all]",
     "numpy",
     "scikit-learn==1.2.2",
-    "gradio==3.35.2",
+    "gradio==5.11.0",
     "gradio_client==0.2.9",
     "requests",
     "httpx==0.24.0",
