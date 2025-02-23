@@ -99,7 +99,7 @@ cd Magma
 ```bash
 conda create -n magma python=3.10 -y
 conda activate magma
-pip install --upgrade pip  # enable PEP 660 support
+pip install --upgrade pip
 pip install -e .
 ```
 
@@ -116,8 +116,9 @@ pip install flash-attn --no-build-isolation
 ### Inference with Huggingface Transformers
 
 We have uploaded the model to Huggingface Hub. You can easily load the model and processor with the following code.
-</details>
-<summary>Inference Code</summary>
+
+<details>
+<summary>Click to expand</summary>
 
 ```bash
 from PIL import Image
@@ -160,11 +161,11 @@ print(response)
 ```
 </details>
 
-### Inference with local model code from this repo
+### Inference with local code from this repo
 
 If you want to debug our model, we also provide a local code for inference. You can run the following code to load the model.
-</details>
-<summary>Inference Code</summary>
+<details>
+<summary>Click to expand</summary>
 
 ```bash
 from magma.processing_magma import MagmaProcessor
@@ -174,6 +175,7 @@ model = MagmaForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code
 processor = MagmaProcessor.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
 model.to("cuda")
 ```
+</details>
 
 ### Direct Use
 
