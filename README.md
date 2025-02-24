@@ -104,7 +104,7 @@ We pursue the goal through two dimensions:
 
 ## Installation
 
-1. Clong this repo to your local machine:
+1. Clone this repo to your local machine:
 
 ```bash
 git clone https://github.com/microsoft/Magma
