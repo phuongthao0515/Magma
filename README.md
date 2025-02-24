@@ -44,10 +44,25 @@
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
 - [x] Model inference code
+- [x] UI Agent Demo
 - [ ] Model checkpoint
 - [ ] Comprehensive user guide
 - [ ] Pretraining code
 - [ ] Pretraining data
+
+
+## :clipboard: Outline
+- [What is Magma?](#what-is-magma)
+- [How we pretrain Magma?](#how-we-pretrain-magma)
+- [Installation](#installation)
+- [Model Usage](#model-usage)
+      - [Inference with Huggingface Transformers](#inference-with-huggingface-transformers)
+      - [Inference with local code](#inference-with-local-code-from-this-repo)
+      - [Evaluation with lmms-eval](#evaluation-with-lmms-eval)
+      - [Agent Demos](#agent-demos)
+- [Citation](#citation)
+- [Acknowledgements](#acknowledgements)
+- [License](#license)
 
 ## What is Magma?
 
@@ -198,6 +213,26 @@ Once everything is ready, you can run the following code to evaluate our model.
 
 ```bash
 sh scripts/lmms_eval_magma.sh
+```
+
+### Agent Demos
+
+We built agent models for our model. The first one we built is UI Agent Demo. As our model is pretrained with Set-of-Mark and Trace-of-Mark, it is naturally synergic to [OmniParser](https://github.com/microsoft/OmniParser). Combining them together, you can immediately get an UI agent, run:
+
+```bash
+python agents/ui_agent/app.py
+```
+
+More importantly, as our Magma model not only has the action-grounding ability, but also multimodal understanding and reasoning ability. You can not only ask the model predict where to click with text:
+
+```bash
+Go to the top ranked post
+```
+
+But also ask free question on the fly! Simply add a prefix "Q:" at the beginning of text prompt, e.g.,
+
+```bash
+Q: What is the title of the post?
 ```
 
 ## User Guidance
