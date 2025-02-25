@@ -1,5 +1,5 @@
 <div align="center">
-<h2>Magma: A Foundation Model for Multimodal AI Agents</h2>
+<h2>🤖 Magma: A Foundation Model for Multimodal AI Agents</h2>
 
 [Jianwei Yang](https://jwyang.github.io/)<sup>*</sup><sup>1</sup><sup>†</sup>&nbsp;
 [Reuben Tan](https://cs-people.bu.edu/rxtan/)<sup>1</sup><sup>†</sup>&nbsp;
@@ -21,12 +21,18 @@
 
 <sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
 
-\[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://microsoft.github.io/Magma/)\] &nbsp; \[[Model Coming Soon!](https://github.com/microsoft/Magma)\] &nbsp; 
+<h3>
+<a href="https://www.arxiv.org/pdf/2502.13130">📄 arXiv Paper</a> &nbsp; 
+<a href="https://microsoft.github.io/Magma/">🌐 Project Page</a> &nbsp; 
+<a href="https://huggingface.co/microsoft/Magma-8B">🤗 Hugging Face Model</a>
+</h3>
 
 </div>
 
 <div align="center">
+<p2>The Path Towards Multimodal AI Agents</p2>
 <img src="assets/images/magma_teaser.png?raw=true" width="100%">
+</div>
 </div>
 
 ## :sparkles: Highlights
@@ -46,8 +52,7 @@ We will be releasing all the following contents:
 - [x] Model inference code
 - [x] UI Agent Demo
 - [ ] Model checkpoint
-- [ ] Comprehensive user guide
-- [ ] Pretraining code
+- [ ] Training code
 - [ ] Pretraining data
 
 

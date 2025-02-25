@@ -182,13 +182,6 @@ def create_model(
                     model.to(device=device, dtype=dtype)
                 else:
                     model.to(dtype=dtype)
-                from .transformer import LayerNormFp32
-
-                def _convert_ln(m):
-                    if isinstance(m, LayerNormFp32):
-                        m.weight.data = m.weight.data.to(torch.float32)
-                        m.bias.data = m.bias.data.to(torch.float32)
-                model.apply(_convert_ln)
             else:
                 model.to(device=device)
                 convert_weights_to_lp(model, dtype=dtype)
