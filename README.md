@@ -25,7 +25,13 @@
 <a href="https://www.arxiv.org/pdf/2502.13130">📄 arXiv Paper</a> &nbsp; 
 <a href="https://microsoft.github.io/Magma/">🌐 Project Page</a> &nbsp; 
 <a href="https://huggingface.co/microsoft/Magma-8B">🤗 Hugging Face Model</a>
+<a href="https://ai.azure.com/explore/models/microsoft-magma-8b/version/1/registry/HuggingFace?tid=72f988bf-86f1-41af-91ab-2d7cd011db47">☁️ Azure AI Foundry</a>
 </h3>
+
+<!-- <h3>
+<a href="https://huggingface.co/spaces/microsoft/Magma-UI">🤗 Gradio UI Agent</a>
+<a href="https://huggingface.co/spaces/microsoft/Magma-Gaming">🤗 Gradio Gaming Agent</a>
+</h3> -->
 
 </div>
 
@@ -42,6 +48,7 @@
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
 ## :fire: News
+* **[2025.02.25]** 🎉 Big News! We are releasing the Magma model on [Hugging Face](https://huggingface.co/microsoft/Magma-8B) and [Azure AI Foundry](https://ai.azure.com/explore/models/microsoft-magma-8b/version/1/registry/HuggingFace?tid=72f988bf-86f1-41af-91ab-2d7cd011db47)!
 * **[2025.02.23]**  We released the Magma Inference code!
 * **[2025.02.20]**  Magma has reached the top spot on [Hacker News](https://news.ycombinator.com/front)!
 * **[2025.02.19]**  We will be releasing our code, model and UI navigation demo by [MSR Forum on 02.25 next Tuesday](https://researchforum.microsoft.com/)!
@@ -50,8 +57,8 @@
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
 - [x] Model inference code
-- [x] Add UI and Gaming ggent Demos
-- [ ] Model checkpoint
+- [x] Add UI and Gaming agent Demos
+- [x] Model checkpoint
 - [ ] Training code
 - [ ] Pretraining data
 
