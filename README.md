@@ -8,7 +8,7 @@
 [Baolin Peng](https://scholar.google.com/citations?user=u1CNjgwAAAAJ&hl=en&oi=ao)<sup>1</sup><sup>‡</sup>&nbsp;
 [Yongyuan Liang](https://cheryyunl.github.io)<sup>2</sup><sup>‡</sup>
 
-[Yu Gu](https://users.umiacs.umd.edu/~hal/)<sup>1</sup>&nbsp;
+[Yu Gu](http://yu-gu.me/)<sup>1</sup>&nbsp;
 [Mu Cai](https://pages.cs.wisc.edu/~mucai/)<sup>3</sup>&nbsp;
 [Seonghyeon Ye](https://seonghyeonye.github.io/)<sup>4</sup>&nbsp;
 [Joel Jang](https://joeljang.github.io/)<sup>5</sup>&nbsp;
