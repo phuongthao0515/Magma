@@ -36,7 +36,7 @@ from transformers.image_utils import (
 )
 
 from transformers.utils import TensorType, is_vision_available, logging
-logging.set_verbosity_info()
+# logging.set_verbosity_info()
 logger = logging.get_logger(__name__)
 
 
