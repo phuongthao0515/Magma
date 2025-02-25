@@ -8,7 +8,6 @@ import json
 import requests
 # utility function
 import os
-from openai import AzureOpenAI
 
 import json
 import sys

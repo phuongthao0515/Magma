@@ -123,9 +123,13 @@ pip install -e .
 
 ```bash
 pip install -e ".[train]"
-pip install flash-attn --no-build-isolation
 ```
 
+4. Install packages for agents:
+
+```bash
+pip install -e ".[agent]"
+```
 
 ## Model Usage
 
