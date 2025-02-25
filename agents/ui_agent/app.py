@@ -64,9 +64,9 @@ MARKDOWN = """
 
 <sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
 
-\[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://microsoft.github.io/Magma/)\] &nbsp; \[[Hugging Face Model](https://huggingface.co/microsoft/Magma-8B)\] &nbsp; 
+\[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://microsoft.github.io/Magma/)\] &nbsp; \[[Github Repo](https://github.com/microsoft/Magma)\] &nbsp; \[[Hugging Face Model](https://huggingface.co/microsoft/Magma-8B)\] &nbsp; 
 
-This demo is powered by [Gradio](https://gradio.app/) and built on top of [OmniParserv2](https://github.com/microsoft/OmniParser).
+This demo is powered by [Gradio](https://gradio.app/) and uses OmniParserv2 to generate Set-of-Mark prompts.
 </div>
 """
 
