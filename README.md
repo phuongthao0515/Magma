@@ -50,7 +50,7 @@
 ## :bookmark_tabs: Todos
 We will be releasing all the following contents:
 - [x] Model inference code
-- [x] UI Agent Demo
+- [x] Add UI and Gaming ggent Demos
 - [ ] Model checkpoint
 - [ ] Training code
 - [ ] Pretraining data
