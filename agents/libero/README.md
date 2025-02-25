@@ -1,6 +1,6 @@
 # Magma: Multimodal Agentic Models
 
-Magma: A multimodal agentic foundation for multimodal understanding and agentic tasks.
+Evaluating Magma on [LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO).
 
 
 #### LIBERO Setup
@@ -65,40 +65,15 @@ save_rollout_video(replay_images, success=done, task_description=task_descriptio
 **Notes:** The above script only tests one episode on a single task and visualizes MAGMA's trajectory with saved video. For comprehensive evaluation on each task suite, please use `eval_magma_libero.py`.
 ```
 python eval_magma_libero.py \
-  --model_name microsoft/magma-8b-libero-object \
+  --model_name microsoft/Magma-8B-libero-object \
   --task_suite_name libero_object \
 
 python eval_magma_libero.py \
-  --model_name microsoft/magma-8b-libero-spatial \
+  --model_name microsoft/Magma-8B-libero-spatial \
   --task_suite_name libero_spatial \
 
 python eval_magma_libero.py \
-  --model_name microsoft/magma-8b-libero-goal \
+  --model_name microsoft/Magma-8B-libero-goal \
   --task_suite_name libero_goal \
 ```
 
-## Bias, Risks, and Limitations
-
-Please note that this model is not specifically designed or evaluated for all downstream purposes. Developers should consider common limitations of language models as they select use cases, and evaluate and mitigate for accuracy, safety, and fairness before using within a specific downstream use case, particularly for high-risk scenarios. Developers should be aware of and adhere to applicable laws or regulations (including privacy, trade compliance laws, etc.) that are relevant to their use case.
-
-## Contributing
-
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
