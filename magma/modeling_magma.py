@@ -97,7 +97,7 @@ class MagmaMultiModalProjector(nn.Module):
         vision_backbone = config.get('vision_backbone', 'convnextxxlarge')
         vision_backbone_size = vision_backbone.replace('convnext', '')
         projector_type = config.get('mm_projector_type', 'linear')
-        mlp_gelu_match = re.match(r'^mlp(\d+)x_gelu_segtokv(\d+)$', projector_type)
+        mlp_gelu_match = re.match(r'^mlp(\d+)x_gelu$', projector_type)
         if mlp_gelu_match:
             mlp_depth = int(mlp_gelu_match.group(1))
             modules = [nn.Linear(config['mm_hidden_size'], config['hidden_size'])]
