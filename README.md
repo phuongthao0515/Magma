@@ -158,7 +158,8 @@ import torch
 from transformers import AutoModelForCausalLM
 from transformers import AutoProcessor 
 
-model = AutoModelForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
+dtype = torch.bfloat16
+model = AutoModelForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code=True, torch_dtype=dtype)
 processor = AutoProcessor.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
 model.to("cuda")
 
@@ -173,7 +174,7 @@ prompt = processor.tokenizer.apply_chat_template(convs, tokenize=False, add_gene
 inputs = processor(images=[image], texts=prompt, return_tensors="pt")
 inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
 inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)
-inputs = inputs.to("cuda")
+inputs = inputs.to("cuda").to(dtype)
 
 generation_args = { 
     "max_new_tokens": 500, 
@@ -203,7 +204,8 @@ If you want to debug our model, we also provide a local code for inference. You 
 from magma.processing_magma import MagmaProcessor
 from magma.modeling_magma import MagmaForCausalLM
 
-model = MagmaForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
+dtype = torch.bfloat16
+model = MagmaForCausalLM.from_pretrained("microsoft/Magma-8B", trust_remote_code=True, torch_dtype=dtype)
 processor = MagmaProcessor.from_pretrained("microsoft/Magma-8B", trust_remote_code=True)
 model.to("cuda")
 ```
