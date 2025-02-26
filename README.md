@@ -43,7 +43,7 @@
 
 ## :sparkles: Highlights
 * **Digital and Physical Worlds:** Magma is the first-ever foundation model for multimodal AI agents, designed to handle complex interactions across both virtual and real environments!
-* **Versatile Capabilities:** Magma as a single model not only posseesses generic image and videos understanding ability, but alse generate goal-driven visual plans and actions, making it versatile for different agentic tasks!
+* **Versatile Capabilities:** Magma as a single model not only possesses generic image and videos understanding ability, but also generate goal-driven visual plans and actions, making it versatile for different agentic tasks!
 * **State-of-the-art Performance:** Magma achieves state-of-the-art performance on various multimodal tasks, including UI navigation, robotics manipulation, as well as generic image and video understanding, in particular the spatial understanding and reasoning!
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
@@ -82,10 +82,10 @@ We will be releasing all the following contents:
 <img src="assets/images/magma_intro_fig.png?raw=true" width="50%">
 </div>
 
-**Magma is a foundation model for multimodal AI agents**. As the bedrock for mutimodal agentic models, it should possesse strong capabilities to perceive the multimodal groundingly world AND take goal-driven actions precisely (see above figure). With this in mind, we are striving for the following goals:
+**Magma is a foundation model for multimodal AI agents**. As the bedrock for multimodal agentic models, it should possess strong capabilities to perceive the multimodal groundingly world AND takes goal-driven actions precisely (see above figure). With this in mind, we are striving for the following goals:
 
 * **Verbal and spatial-temporal intelligence:** Magma is supposed to have both strong verbal and spatial-temporal intelligence to understand images and videos, ground its actions on the observations, and further translate the external goal into action plan and executions.
-* **Digial and physical world:** Magma should not be limited to either the digital world (e.g., web navigation) or the physical world (e.g., robotics manipulation), but rather be able to work across both worlds, just like humans ourselves.
+* **Digital and physical world:** Magma should not be limited to either the digital world (e.g., web navigation) or the physical world (e.g., robotics manipulation), but rather be able to work across both worlds, just like humans ourselves.
 
 With this in mind, we developed a new pretraining data, which mostly consists of unlabeled videos in the wild plus the existing annotated agentic data, and a new pretraining framework, which unifies the training of all three modalities (text, image, and action), to train a new foundation model for multimodal AI agents, named Magma.
 
@@ -97,7 +97,7 @@ With this in mind, we developed a new pretraining data, which mostly consists of
 
 We pursue the goal through two dimensions:
 
-* **Large-scale hetergeneous training data**: we curage a large amount of data in the wild, including existing multimodal understanding data, UI navigation data, and robotics manipulation data, and unlabeled videos in the wild. We also propose a new data collection pipeline to collect unlabeled videos in the wild, which is scalable and cost-effective. To attain useful action supervision from raw videos and robotics trajectories, we meticulously removed the camera motions in the videos and then transform the motions into "action" supervisions for our model training. These provide unique signals for the model to learn the cross-modal connections and long-horizong action prediction and planning.
+* **Large-scale heterogeneous training data**: we curate a large amount of data in the wild, including existing multimodal understanding data, UI navigation data, and robotics manipulation data, and unlabeled videos in the wild. We also propose a new data collection pipeline to collect unlabeled videos in the wild, which is scalable and cost-effective. To attain useful action supervision from raw videos and robotics trajectories, we meticulously removed the camera motions in the videos and then transform the motions into "action" supervisions for our model training. These provide unique signals for the model to learn the cross-modal connections and long-horizon action prediction and planning.
 
 * **Universal pretraining objectives**: texts and actions are inherently different and thus cause a huge gap, while visual tokens are continuous. We propose a universal pretraining framework that unifies the training of all three modalities, and we show that this is crucial for the model to learn the cross-modal connections. More specifically, we proposed Set-of-Mark and Trace-of-Mark as the auxiliary tasks for our model pretraining, as the bridge of different output modalities. In this way, we are building a great alignment between the text and action modalities, and also between the image and action modalities.
 
@@ -260,7 +260,7 @@ Q: What is the title of the post?
 
 This model is intended for broad research use in English. The model take images and text as inputs, and produces the textual outputs for the following uses:
 
-* **Image/Video-Conditoned Text Generation:** The model can generate text (e.g., descriptions, answers) based on the input text and image.
+* **Image/Video-Conditioned Text Generation:** The model can generate text (e.g., descriptions, answers) based on the input text and image.
 
 * **Visual Planning Capabilities:** The model can also produce the visual trace as the future planning to accomplish a task (e.g., move object from one place to another).
 
@@ -278,7 +278,7 @@ The model can be further finetuned for different downstream tasks, such as:
 
 * **UI Navigation:** We can finetune this model for specific UI navigation tasks, such as web navigation or mobile navigation. The model can achieve superior performance on these tasks.
 
-* **Robotics Manipulation:** Our model can be further finetuned for robotics tasks given its general agentic capabilities as a vision-language-action model. After finetuning, our model significantly outperms the state-of-the-art models such as OpenVLA on robotics manipulation tasks.
+* **Robotics Manipulation:** Our model can be further finetuned for robotics tasks given its general agentic capabilities as a vision-language-action model. After finetuning, our model significantly outperforms the state-of-the-art models such as OpenVLA on robotics manipulation tasks.
 
 ## Bias, Risks, and Limitations
 
