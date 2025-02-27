@@ -48,27 +48,9 @@ MARKDOWN = """
 <div align="center">
 <h2>Magma: A Foundation Model for Multimodal AI Agents</h2>
 
-[Jianwei Yang](https://jwyang.github.io/)<sup>*</sup><sup>1</sup><sup>†</sup>&nbsp;
-[Reuben Tan](https://cs-people.bu.edu/rxtan/)<sup>1</sup><sup>†</sup>&nbsp;
-[Qianhui Wu](https://qianhuiwu.github.io/)<sup>1</sup><sup>†</sup>&nbsp;
-[Ruijie Zheng](https://ruijiezheng.com/)<sup>2</sup><sup>‡</sup>&nbsp;
-[Baolin Peng](https://scholar.google.com/citations?user=u1CNjgwAAAAJ&hl=en&oi=ao)<sup>1</sup><sup>‡</sup>&nbsp;
-[Yongyuan Liang](https://cheryyunl.github.io)<sup>2</sup><sup>‡</sup>
-[Yu Gu](https://users.umiacs.umd.edu/~hal/)<sup>1</sup>&nbsp;
-[Mu Cai](https://pages.cs.wisc.edu/~mucai/)<sup>3</sup>&nbsp;
-[Seonghyeon Ye](https://seonghyeonye.github.io/)<sup>4</sup>&nbsp;
-[Joel Jang](https://joeljang.github.io/)<sup>5</sup>&nbsp;
-[Yuquan Deng](https://scholar.google.com/citations?user=LTC0Q6YAAAAJ&hl=en)<sup>5</sup>&nbsp;
-[Lars Liden](https://sites.google.com/site/larsliden)<sup>1</sup>&nbsp;
-[Jianfeng Gao](https://www.microsoft.com/en-us/research/people/jfgao/)<sup>1</sup><sup>▽</sup>
-
-<sup>1</sup> Microsoft Research; <sup>2</sup> University of Maryland; <sup>3</sup> University of Wisconsin-Madison; <sup>4</sup> KAIST; <sup>5</sup> University of Washington
-
-<sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
-
 \[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://microsoft.github.io/Magma/)\] &nbsp; \[[Github Repo](https://github.com/microsoft/Magma)\] &nbsp; \[[Hugging Face Model](https://huggingface.co/microsoft/Magma-8B)\] &nbsp; 
 
-This demo is powered by [Gradio](https://gradio.app/) and uses OmniParserv2 to generate Set-of-Mark prompts.
+This demo is powered by [Gradio](https://gradio.app/) and uses [OmniParserv2](https://github.com/microsoft/OmniParser) to generate [Set-of-Mark prompts](https://github.com/microsoft/SoM).
 
 The demo supports three modes:
 1. Empty text inut: it downgrades to an OmniParser demo.
