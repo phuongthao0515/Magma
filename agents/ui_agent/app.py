@@ -23,14 +23,16 @@ from transformers import AutoProcessor
 # Define repository and local directory
 repo_id = "microsoft/OmniParser-v2.0"  # HF repo
 local_dir = "weights"  # Target local directory
+dtype = torch.bfloat16
+DEVICE = torch.device('cuda')  
 
 som_generator = MarkHelper()
 magma_som_prompt = "<image>\nIn this view I need to click a button to \"{}\"? Provide the coordinates and the mark index of the containing bounding box if applicable."
 magma_qa_prompt = "<image>\n{} Answer the question briefly."
 magma_model_id = "microsoft/Magma-8B"
-magam_model = AutoModelForCausalLM.from_pretrained(magma_model_id, trust_remote_code=True)
+magam_model = AutoModelForCausalLM.from_pretrained(magma_model_id, trust_remote_code=True, torch_dtype=dtype)
 magma_processor = AutoProcessor.from_pretrained(magma_model_id, trust_remote_code=True)
-magam_model.to("cuda")
+magam_model.to(DEVICE)
 
 # Download the entire repository
 snapshot_download(repo_id=repo_id, local_dir=local_dir)
@@ -67,6 +69,11 @@ MARKDOWN = """
 \[[arXiv Paper](https://www.arxiv.org/pdf/2502.13130)\] &nbsp; \[[Project Page](https://microsoft.github.io/Magma/)\] &nbsp; \[[Github Repo](https://github.com/microsoft/Magma)\] &nbsp; \[[Hugging Face Model](https://huggingface.co/microsoft/Magma-8B)\] &nbsp; 
 
 This demo is powered by [Gradio](https://gradio.app/) and uses OmniParserv2 to generate Set-of-Mark prompts.
+
+The demo supports three modes:
+1. Empty text inut: it downgrades to an OmniParser demo.
+2. Text input starting with "Q:": it leads to a visual question answering demo.
+3. Text input for UI navigation: it leads to a UI navigation demo.
 </div>
 """
 
@@ -91,7 +98,7 @@ def get_som_response(instruction, image_som):
     inputs = magma_processor(images=[image_som], texts=prompt, return_tensors="pt")
     inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
     inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)
-    inputs = inputs.to("cuda")
+    inputs = inputs.to(dtype).to(DEVICE)
 
     magam_model.generation_config.pad_token_id = magma_processor.tokenizer.pad_token_id
     with torch.inference_mode():
@@ -128,7 +135,7 @@ def get_qa_response(instruction, image):
     inputs = magma_processor(images=[image], texts=prompt, return_tensors="pt")
     inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
     inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)
-    inputs = inputs.to("cuda")
+    inputs = inputs.to(dtype).to(DEVICE)
 
     magam_model.generation_config.pad_token_id = magma_processor.tokenizer.pad_token_id
     with torch.inference_mode():
