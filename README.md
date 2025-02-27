@@ -21,12 +21,15 @@
 
 <sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
 
-<h3>
+<h3 style="color:#b22222;"> To Appear at CVPR 2025 </h3>
+
+<h4>
 <a href="https://www.arxiv.org/pdf/2502.13130">📄 arXiv Paper</a> &nbsp; 
 <a href="https://microsoft.github.io/Magma/">🌐 Project Page</a> &nbsp; 
 <a href="https://huggingface.co/microsoft/Magma-8B">🤗 Hugging Face Model</a>
 <a href="https://ai.azure.com/explore/models/microsoft-magma-8b/version/1/registry/HuggingFace?tid=72f988bf-86f1-41af-91ab-2d7cd011db47">☁️ Azure AI Foundry</a>
-</h3>
+<a href="https://www.youtube.com/watch?v=SbfzvUU5yM8">📺 Video</a>
+</h4>
 
 <!-- <h3>
 <a href="https://huggingface.co/spaces/microsoft/Magma-UI">🤗 Gradio UI Agent</a>
@@ -48,7 +51,7 @@
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
 ## :fire: News
-* **[2025.02.26]** 🎉 Magma got accepted by CVPR 2025!
+* **[2025.02.26]** ⭐ Exciting News! Magma got accepted by CVPR 2025!
 * **[2025.02.25]** 🎉 Big News! We are releasing the Magma model on [Hugging Face](https://huggingface.co/microsoft/Magma-8B) and [Azure AI Foundry](https://ai.azure.com/explore/models/microsoft-magma-8b/version/1/registry/HuggingFace?tid=72f988bf-86f1-41af-91ab-2d7cd011db47)!
 * **[2025.02.23]**  We released the Magma Inference code!
 * **[2025.02.20]**  Magma has reached the top spot on [Hacker News](https://news.ycombinator.com/front)!
@@ -101,19 +104,6 @@ We pursue the goal through two dimensions:
 * **Large-scale heterogeneous training data**: we curate a large amount of data in the wild, including existing multimodal understanding data, UI navigation data, and robotics manipulation data, and unlabeled videos in the wild. We also propose a new data collection pipeline to collect unlabeled videos in the wild, which is scalable and cost-effective. To attain useful action supervision from raw videos and robotics trajectories, we meticulously removed the camera motions in the videos and then transform the motions into "action" supervisions for our model training. These provide unique signals for the model to learn the cross-modal connections and long-horizon action prediction and planning.
 
 * **Universal pretraining objectives**: texts and actions are inherently different and thus cause a huge gap, while visual tokens are continuous. We propose a universal pretraining framework that unifies the training of all three modalities, and we show that this is crucial for the model to learn the cross-modal connections. More specifically, we proposed Set-of-Mark and Trace-of-Mark as the auxiliary tasks for our model pretraining, as the bridge of different output modalities. In this way, we are building a great alignment between the text and action modalities, and also between the image and action modalities.
-
-<!-- We developed two new techniques to significantly improve the pretraining of Magma:
-
-* **Set-of-Mark prediction for Action Grounding:**
-
-<div align="center">
-<img src="assets/images/som_flatten.png?raw=true" width="80%">
-</div>
-
-* **Trace-of-Mark prediction for Action Planning:**
-<div align="center">
-<img src="assets/images/tom_fig.png?raw=true" width="80%">
-</div> -->
 
 ## Installation
 
@@ -252,6 +242,8 @@ sh scripts/lmms_eval_magma.sh
 ```
 
 ### Agent Demos
+
+#### UI Agent
 
 We built agent models for our model. The first one we built is UI Agent Demo. As our model is pretrained with Set-of-Mark and Trace-of-Mark, it is naturally synergic to [OmniParser](https://github.com/microsoft/OmniParser). Combining them together, you can immediately get an UI agent, run:
 
