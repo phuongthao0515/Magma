@@ -51,6 +51,7 @@
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
 ## :fire: News
+* **[2025.02.28]** We released two demos, [Magma-UI](https://huggingface.co/spaces/microsoft/Magma-UI) and [Magma-Gaming](https://huggingface.co/spaces/microsoft/Magma-Gaming) on Hugging Face. Check out our model's action grounding and planning capabilities!
 * **[2025.02.26]** ⭐ Exciting News! Magma got accepted by CVPR 2025!
 * **[2025.02.25]** 🎉 Big News! We are releasing the Magma model on [Hugging Face](https://huggingface.co/microsoft/Magma-8B) and [Azure AI Foundry](https://ai.azure.com/explore/models/microsoft-magma-8b/version/1/registry/HuggingFace?tid=72f988bf-86f1-41af-91ab-2d7cd011db47)!
 * **[2025.02.23]**  We released the Magma Inference code!
