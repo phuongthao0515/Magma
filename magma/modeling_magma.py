@@ -759,34 +759,6 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
 
                 position_ids = torch.sum(attention_mask, dim=1).unsqueeze(-1) - 1
         
-        # outputs = self.language_model(
-        #     attention_mask=attention_mask,
-        #     position_ids=position_ids,
-        #     past_key_values=past_key_values,
-        #     inputs_embeds=inputs_embeds,
-        #     use_cache=use_cache,
-        #     output_attentions=output_attentions,
-        #     output_hidden_states=output_hidden_states,
-        #     return_dict=return_dict,
-        # )
-
-        # logits = outputs[0]
-        # loss = None
-        # if labels is not None:
-        #     # Shift so that tokens < n predict n
-        #     if attention_mask is not None:
-        #         shift_attention_mask = attention_mask[..., 1:]
-        #         shift_logits = logits[..., :-1, :][shift_attention_mask.to(logits.device) != 0].contiguous()
-        #         shift_labels = labels[..., 1:][shift_attention_mask.to(labels.device) != 0].contiguous()
-        #     else:
-        #         shift_logits = logits[..., :-1, :].contiguous()
-        #         shift_labels = labels[..., 1:].contiguous()
-        #     # Flatten the tokens
-        #     loss_fct = nn.CrossEntropyLoss()
-        #     loss = loss_fct(
-        #         shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1).to(shift_logits.device)
-        #     )
-
         outputs = self.language_model.model(
             attention_mask=attention_mask,
             position_ids=position_ids,
