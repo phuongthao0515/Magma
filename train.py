@@ -95,7 +95,6 @@ class DataArguments:
     image_aspect_ratio: str = 'square'
     max_num_crops: int = 25
     add_im_loss: bool = False
-    conversation_style: str = 'coin'
     training_size: str = 'default'
     show_trace: bool = False
 
@@ -270,7 +269,6 @@ def smart_tokenizer_and_embedding_resize(
     else:
         num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     model.resize_token_embeddings(len(tokenizer))    
-    # model._resize_token_embeddings(len(tokenizer))
 
     new_vocab_size = len(tokenizer)    
     # Update base model and current model config
@@ -279,9 +277,6 @@ def smart_tokenizer_and_embedding_resize(
     else:
         model.config.vocab_size = new_vocab_size
     model.vocab_size = new_vocab_size
-
-    # Tie weights again if needed
-    # model.tie_weights()
 
     if num_new_tokens > 0:
         input_embeddings = model.get_input_embeddings().weight.data
