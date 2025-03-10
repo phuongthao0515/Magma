@@ -154,6 +154,32 @@ or the newest version:
 pip install git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.48.2
 ```
 
+## Model Training
+
+### Finetuning
+
+#### Magma-820K
+
+* Data Preparation
+
+Download annotation file from [MagmaAI/Magma-820K](https://huggingface.co/datasets/MagmaAI/Magma-820K). Please prepare the image data according to the dataset list in the dataset page. Once finished, please edit [magma_820k.yaml](data_configs/magma_820k.yaml) file accordingly.
+
+```sh
+# a list of all the data paths
+DATA_PATH: 
+  - "/path/to/magma_820k.json"
+IMAGE_FOLDER:
+  - "/root/to/magma_820k/images"
+```
+
+* Finetune from Magma-8B
+
+Once set up the dataset and config, you can run the following command to finetune the model:
+
+```bash
+sh scripts/finetune_magma_820k.sh
+```
+
 ## Model Usage
 
 ### Inference with Huggingface Transformers
