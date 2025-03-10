@@ -257,7 +257,7 @@ model.to("cuda")
 
 ### Evaluation with lmms-eval
 
-Please refer to [lmms-eval-instruction](tools/lmms-eval-magma/README.md) for the detailed instructions to run the evaluation with lmms-eval toolkit.
+Please refer to [lmms-eval-instruction](tools/lmms-eval-magma) for the detailed instructions to run the evaluation with lmms-eval toolkit.
 
 Once everything is ready, you can run the following code to evaluate our model from the root folder.
 
@@ -273,18 +273,12 @@ lmms-eval --tasks list_groups
 
 ### Evaluation with SimplerEnv
 
-Please refer to [SimplerEnv-instruction](tools/simplerenv-magma/README.md) for the detailed instructions to run the evaluation with SimplerEnv toolkit.
+Please refer to [SimplerEnv-instruction](tools/simplerenv-magma) for the detailed instructions to run the evaluation with SimplerEnv toolkit.
 
 Once everything is ready, you can run the following code to evaluate our model.
 
 ```bash
 sh scripts/evaluation/simplerenv/bridge.sh
-```
-
-You can evaluate other benchmarks by modifying the variable, eval_tasks. The list of `eval_tasks` can be found after running below code.
-```
-# lmms-eval --tasks {list_groups,list_subtasks,list_tags,list}
-lmms-eval --tasks list_groups
 ```
 
 ### Multi-images or Video Support
