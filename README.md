@@ -85,15 +85,8 @@ We will be releasing all the following contents:
         - [UI Agent](#ui-agent)
         - [Gaming Agent](#gaming-agent)
         - [Robot Visual Planning](#robot-visual-planning)
-- [User Guidance](#user-guidance)
-- [Direct use](#direct-use)
-- [Downstream Use](#downstream-use)
-- [Bias, Risks, and Limitations](#bias-risks-and-limitations)
 - [Citation](#citation)
 - [Acknowledgements](#acknowledgements)
-- [License](#license)
-- [Contributing](#contributing)
-- [Trademarks](#trademarks)
 
 ## What is Magma?
 
