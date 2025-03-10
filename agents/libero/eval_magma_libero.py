@@ -82,7 +82,7 @@ def eval_libero(cfg: LiberoConfig) -> Tuple[int, int]:
         log_file.flush()
 
         # Get prompt for current task
-        prompt = get_magma_prompt(task_description)
+        prompt = get_magma_prompt(task_description, processor, magma.config)
         
         # Initialize task-specific counters
         task_episodes, task_successes = 0, 0

@@ -34,7 +34,7 @@ print(f"Task {task_id} description: {task_description}")
 # Load MAGMA model
 model_name = "microsoft/magma-8b-libero-goal"  # or your local path
 processor, magma = get_magma_model(model_name)
-prompt = get_magma_prompt(task_description)
+prompt = get_magma_prompt(task_description, processor, magma.config)
 
 # Run evaluation
 num_steps_wait = 10

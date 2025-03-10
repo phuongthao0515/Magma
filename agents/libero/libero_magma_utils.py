@@ -2,7 +2,6 @@ import os
 import json
 import torch
 import numpy as np
-from magma.utils.conversation import conv_templates
 from magma.image_processing_magma import MagmaImageProcessor
 from magma.processing_magma import MagmaProcessor
 from magma.modeling_magma import MagmaForConditionalGeneration
@@ -19,12 +18,23 @@ def get_magma_model(model_name):
     )
     return processor, magma
 
-def get_magma_prompt(task_description):
-    conv_mode = "llama_3_instruct"
-    conv = conv_templates[conv_mode].copy()
-    conv.append_message(conv.roles[0], f"<image>\nWhat action should the robot take to {task_description}?")
-    conv.append_message(conv.roles[1], "<action>")
-    prompt = conv.get_prompt()
+def get_magma_prompt(task_description, processor, model_config):
+    convs = [
+        {"role": "user", "content": f"<image>\nWhat action should the robot take to {task_description}?"},
+    ]
+    convs = [
+        {
+            "role": "system",
+            "content": "You are agent that can see, talk and act.", 
+        },            
+    ] + convs      
+    prompt = processor.tokenizer.apply_chat_template(
+        convs,
+        tokenize=False,
+        add_generation_prompt=True
+    )
+    if model_config.mm_use_image_start_end:
+        prompt = prompt.replace("<image>", "<image_start><image><image_end>")    
     return prompt
 
 def get_magma_action(magma, processor, img, prompt, task_suite_name):
@@ -37,8 +47,8 @@ def get_magma_action(magma, processor, img, prompt, task_suite_name):
 
     # process inputs
     inputs = processor(images=img, texts=prompt, return_tensors="pt")
-    inputs['input_ids'] = inputs['input_ids'][:, :-3]
-    inputs['attention_mask'] = inputs['attention_mask'][:, :-3]        
+    inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
+    inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)   
     inputs = inputs.to("cuda").to(torch.bfloat16)
 
     # predict actions with magma
