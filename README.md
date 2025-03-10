@@ -256,23 +256,12 @@ model.to("cuda")
 
 ### Evaluation with lmms-eval
 
-To faciliate the quantitative evaluation of our model, we also provide a model class for [lmms-eval](https://github.com/EvolvingLMMs-Lab/lmms-eval). Please refer to [lmms-eval-magma](./tools/lmms-eval-magma) for the code.
+Please refer to [lmms-eval-instruction](tools/lmms-eval-magma/README.md) for the detailed instructions to run the evaluation with lmms-eval toolkit.
 
-After installing lmms-eval, copy 'tools/lmms_eval_magma/magma.py' to 'lmms-eval/lmms-eval/models' folder.
-
-Remember to register our model by modifying the 'lmms-eval/lmms_eval/models/__init__.py' file as follows:
-
-```python
-AVAILABLE_MODELS = {
-    # many previous registered models
-    "magma": Magma,
-}
-```
-
-Once everything is ready, you can run the following code to evaluate our model.
+Once everything is ready, you can run the following code to evaluate our model from the root folder.
 
 ```bash
-sh scripts/lmms_eval_magma.sh
+sh scripts/evaluation/lmms-eval/lmms_eval_magma.sh
 ```
 
 You can evaluate other benchmarks by modifying the variable, eval_tasks. The list of `eval_tasks` can be found after running below code.
@@ -281,7 +270,23 @@ You can evaluate other benchmarks by modifying the variable, eval_tasks. The lis
 lmms-eval --tasks list_groups
 ```
 
-### Multi-images or Video
+### Evaluation with SimplerEnv
+
+Please refer to [SimplerEnv-instruction](tools/simplerenv-magma/README.md) for the detailed instructions to run the evaluation with SimplerEnv toolkit.
+
+Once everything is ready, you can run the following code to evaluate our model.
+
+```bash
+sh scripts/evaluation/simplerenv/bridge.sh
+```
+
+You can evaluate other benchmarks by modifying the variable, eval_tasks. The list of `eval_tasks` can be found after running below code.
+```
+# lmms-eval --tasks {list_groups,list_subtasks,list_tags,list}
+lmms-eval --tasks list_groups
+```
+
+### Multi-images or Video Support
 
 Handle multiple images is extremely simple for our model. You just simply duplicate the placeholder in your text prompt, and correspondingly add all images into the list. A dummy example is as follows:
 
