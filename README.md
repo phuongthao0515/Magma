@@ -80,6 +80,7 @@ We will be releasing all the following contents:
     - [Inference with Huggingface Transformers](#inference-with-huggingface-transformers)
     - [Inference with local code from this repo](#inference-with-local-code-from-this-repo)
     - [Evaluation with lmms-eval](#evaluation-with-lmms-eval)
+    - [Evaluation with SimplerEnv](#evaluation-with-simplerenv)
     - [Multi-images or Video](#multi-images-or-video)
     - [Agent Demos](#agent-demos)
         - [UI Agent](#ui-agent)
