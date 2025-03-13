@@ -350,6 +350,17 @@ We also built a robot visual planning demo. You can run the following command to
 python agents/robot_traj/app.py
 ```
 
+For this demo, you may encounter an error as discussed in this [issue](https://github.com/microsoft/Magma/issues/43), a quick fix is running the following command:
+
+```sh
+pip install imageio[ffmpeg]
+```
+
+If it still does not work, please install the older version of transformers:
+```sh
+pip install git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.44.1
+```
+
 <!-- Some example outputs:
 
 <div align="center">
