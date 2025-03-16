@@ -74,6 +74,8 @@ We will be releasing all the following contents:
 - [What is Magma?](#what-is-magma)
 - [How we pretrain Magma?](#how-we-pretrain-magma)
 - [Installation](#installation)
+- [Data Preprocessing](#data-preprocessing)
+  - [SoM and ToM Generation](#som-and-tom-generation)
 - [Model Training](#model-training)
   - [Finetuning on Magma-820K](#finetuning-on-magma-820k)
 - [Model Usage](#model-usage)
@@ -161,6 +163,17 @@ or the newest version:
 ```bash
 pip install git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.48.2
 ```
+## Data Preprocessing
+
+### SoM and ToM Generation
+
+As shown in Table 1 of our paper, we apply SoM and ToM on both robotics data and instructional videos. To ensure reproducibility, we provide the code to generate SoM and ToM for instructional videos. The code is located in `tools/som_tom/demo.py`. You can run the following command to generate SoM and ToM for the robotics data:
+
+```bash
+python tools/som_tom/demo.py
+```
+
+And then you can find two videos in the `tools/som_tom/videos` folder. The original trace extracted from CoTracker is shown in `orig_trace.mp4`, and the SoM-ToM video is named `som_tom.mp4`.
 
 ## Model Training
 

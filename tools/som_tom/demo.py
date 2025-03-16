@@ -17,7 +17,7 @@ from data.utils.som_tom import som_prompting, tom_prompting
 device = 'cuda'
 grid_size = 15
 cotracker = torch.hub.load("facebookresearch/co-tracker", "cotracker3_offline").to(device)
-visual_trace_folder = "./tools/trace-of-mark/visual_trace"
+visual_trace_folder = "./tools/som_tom/videos"
 vis = Visualizer(save_dir=visual_trace_folder, pad_value=0, linewidth=3, tracks_leave_trace=-1)
 trace = visual_trace(linewidth=3)
 
