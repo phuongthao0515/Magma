@@ -26,12 +26,12 @@ def som_prompting(image, pos_traces, neg_traces, draw_som_positive=False, draw_s
         draw.text((points[0]-text_size[0] // 2, points[1]-text_size[1] // 2-3), txt, fill='white', font=font_size)
         
     fontsize = 1
-    font = ImageFont.truetype("magma_utils/arial.ttf", fontsize)
+    font = ImageFont.truetype("data/utils/arial.ttf", fontsize)
     txt = "55"    
     while min(get_text_size(txt, image, font)) < 0.03*image_size[0]:
         # iterate until the text size is just larger than the criteria
         fontsize += 1
-        font = ImageFont.truetype("magma_utils/arial.ttf", fontsize)
+        font = ImageFont.truetype("data/utils/arial.ttf", fontsize)
 
     text_size_2digits = get_text_size('55', image, font)
     text_size_1digit = get_text_size('5', image, font)
@@ -100,12 +100,12 @@ def som_prompting_with_priors(image, pos_traces_som, neg_traces_som, pos_mark_id
         draw.text((points[0]-text_size[0] // 2, points[1]-text_size[1] // 2-3), txt, fill='white', font=font_size)
         
     fontsize = 1
-    font = ImageFont.truetype("magma_utils/arial.ttf", fontsize)
+    font = ImageFont.truetype("data/utils/arial.ttf", fontsize)
     txt = "55"    
     while min(get_text_size(txt, image, font)) < 0.02*image_size[0]:
         # iterate until the text size is just larger than the criteria
         fontsize += 1
-        font = ImageFont.truetype("magma_utils/arial.ttf", fontsize)
+        font = ImageFont.truetype("data/utils/arial.ttf", fontsize)
 
     text_size_2digits = get_text_size('55', image, font)
     text_size_1digit = get_text_size('5', image, font)
