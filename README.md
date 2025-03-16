@@ -51,6 +51,7 @@
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
 ## :fire: News
+* **[2025.03.16]** We released the demo code for generating SoM and ToM for instructional videos (i.e., Alg. 2 in our paper) in [SoM/ToM Generation](#som-and-tom-generation).
 * **[2025.03.09]** 🔥 We released Magma training code, and an exampler for training Magma-8B on Magma-820K dataset. Check out the [Model Training](#model-training)
 * **[2025.03.06]** We released a new demo for showing robot planning capabilities. Run `python agents/robot_traj/app.py` to start the demo!
 * **[2025.02.28]** We released two demos, [Magma-UI](https://huggingface.co/spaces/microsoft/Magma-UI) and [Magma-Gaming](https://huggingface.co/spaces/microsoft/Magma-Gaming) on Hugging Face. Check out our model's action grounding and planning capabilities!
