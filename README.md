@@ -146,6 +146,35 @@ pip install -e ".[train]"
 pip install -e ".[agent]"
 ```
 
+5. Other probably needed packages:
+
+* Co-tracker
+```sh
+# Install co-tracker
+git clone https://github.com/facebookresearch/co-tracker
+cd co-tracker
+pip install -e .
+pip install imageio[ffmpeg]
+cd ../
+```
+
+* Kmeans
+```sh
+# Install kmeans_pytorch, note: install with pip will leads to error
+git clone https://github.com/subhadarship/kmeans_pytorch
+cd kmeans_pytorch
+pip install -e .
+cd ../
+```
+
+* Misc
+```sh
+# Install others packages
+pip install ipython
+pip install faiss-cpu
+pip install decord
+```
+
 ### Customized Transformers
 
 ⚠️ One important thing to note is that our model uses [ConvNext](https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/convnext.py) as the backbone, which contains a layer scaler parameter [gamma](https://github.com/huggingface/pytorch-image-models/blob/e44f14d7d2f557b9f3add82ee4f1ed2beefbb30d/timm/models/convnext.py#L144). This leads to a bug of Transformers library as it automatically replace the 'gamma' with 'weight' when loading the model. To fix this, we need to modify the 'transformers/models/auto/modeling_auto.py' file as follows:
