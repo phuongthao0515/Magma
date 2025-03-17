@@ -12,6 +12,12 @@ from magma.processing_magma import MagmaProcessor
 from magma.modeling_magma import MagmaForCausalLM
 from transforms3d.euler import euler2axangle
 
+
+action_norm_stats = {
+    "bridge_orig": {'mask': [True, True, True, True, True, True, False], 'max': [0.41691166162490845, 0.25864794850349426, 0.21218234300613403, 3.122201919555664, 1.8618112802505493, 6.280478477478027, 1.0], 'mean': [0.0002334194869035855, 0.00013004911306779832, -0.00012762474943883717, -0.0001556558854645118, -0.0004039328487124294, 0.00023557482927571982, 0.5764579176902771], 'min': [-0.4007510244846344, -0.13874775171279907, -0.22553899884223938, -3.2010786533355713, -1.8618112802505493, -6.279075622558594, 0.0], 'q01': [-0.02872725307941437, -0.04170349963009357, -0.026093858778476715, -0.08092105075716972, -0.09288699507713317, -0.20718276381492615, 0.0], 'q99': [0.028309678435325586, 0.040855254605412394, 0.040161586627364146, 0.08192047759890528, 0.07792850524187081, 0.20382574498653397, 1.0], 'std': [0.009765930473804474, 0.013689135201275349, 0.012667362578213215, 0.028534092009067535, 0.030637972056865692, 0.07691419124603271, 0.4973701536655426]},
+    "google_robot": {'mask': [True, True, True, True, True, True, False], 'max': [2.9984593391418457, 22.09052848815918, 2.7507524490356445, 1.570636510848999, 1.5321086645126343, 1.5691522359848022, 1.0], 'mean': [0.006987582892179489, 0.006265917327255011, -0.01262515690177679, 0.04333311319351196, -0.005756212864071131, 0.0009130256366916001, 0.5354204773902893], 'min': [-2.0204520225524902, -5.497899532318115, -2.031663417816162, -1.569917917251587, -1.569892168045044, -1.570419430732727, 0.0], 'q01': [-0.22453527510166169, -0.14820013284683228, -0.231589707583189, -0.3517994859814644, -0.4193011274933815, -0.43643461108207704, 0.0], 'q99': [0.17824687153100965, 0.14938379630446405, 0.21842354819178575, 0.5892666035890578, 0.35272657424211445, 0.44796681255102094, 1.0], 'std': [0.0692116990685463, 0.05970962345600128, 0.07353084534406662, 0.15610496699810028, 0.13164450228214264, 0.14593800902366638, 0.497110515832901]}
+}
+
 class MagmaInference:
     def __init__(self, model_name, policy_setup, action_scale=1.0, sticky_gripper_num_repeat=10, unnorm_key=None, sample=False):
         if policy_setup == "widowx_bridge":
@@ -19,14 +25,6 @@ class MagmaInference:
         elif policy_setup == "google_robot":
             self.unnorm_key = "fractal20220817_data" if unnorm_key is None else unnorm_key
         self.sticky_gripper_num_repeat = sticky_gripper_num_repeat
-
-        self.real_vla = AutoModelForVision2Seq.from_pretrained(
-            "openvla/openvla-7b",
-            attn_implementation="flash_attention_2",  # [Optional] Requires `flash_attn`
-            torch_dtype=torch.bfloat16,
-            low_cpu_mem_usage=True,
-            trust_remote_code=True
-        ).to("cuda")
 
         self.processor = MagmaProcessor.from_pretrained(model_name, trust_remote_code=True) 
         self.vla = MagmaForCausalLM.from_pretrained(
@@ -48,7 +46,7 @@ class MagmaInference:
         self.gripper_action_repeat = 0
         self.sticky_gripper_action = 0.0
         self.previous_gripper_action = None
-        self.action_norm_stats = self.real_vla.get_action_stats(self.unnorm_key)
+        self.action_norm_stats = action_norm_stats[self.unnorm_key]
         self.n_action_bins = 256
         self.vocab_size = self.processor.tokenizer.vocab_size
         self.bins = np.linspace(-1, 1, self.n_action_bins)
