@@ -14,7 +14,7 @@ from scenedetect import detect, ContentDetector
 
 parser = argparse.ArgumentParser('')
 parser.add_argument('--ann_path', type=str, default="/path/to/json/file", metavar='AP',
-                    help='path to json file that contains video and language annotations. See lines 170 - 173 for more dtail.')
+                    help='path to json file that contains video and language annotations. See lines 169 - 172 for more dtail.')
 parser.add_argument('--video_dir', type=str, default="/path/to/video/directory", metavar='VD',
                     help='path to video dir')
 parser.add_argument('--temp_video_segment_dir', type=str, default="./temp_video_segments", metavar='TD',
