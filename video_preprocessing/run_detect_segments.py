@@ -14,7 +14,7 @@ from scenedetect import detect, ContentDetector
 
 parser = argparse.ArgumentParser('')
 parser.add_argument('--ann_path', type=str, default="/path/to/json/file", metavar='AP',
-                    help='path to json file that contains video and language annotations. See lines 169 - 172 for more dtail.')
+                    help='path to json file that contains video and language annotations. See lines 169 - 172 for more detail.')
 parser.add_argument('--video_dir', type=str, default="/path/to/video/directory", metavar='VD',
                     help='path to video dir')
 parser.add_argument('--temp_video_segment_dir', type=str, default="./temp_video_segments", metavar='TD',
@@ -80,15 +80,6 @@ def extract_num_frames(video_path):
     return num_frames, vid_fps, cap
 
 def process_single_vid(vid, vid_anns, min_part_duration=3):
-
-    if torch.cuda.is_available():
-        with torch.no_grad():
-            device = torch.device('cuda')
-            a = torch.randn(1, device=device)
-            b = torch.randn(1, device=device)
-            result = a + b
-            torch.cuda.empty_cache()
-
     vid_path = os.path.join(args.video_dir, '%s.mp4' % vid)
     num_frames, vid_fps, cap = extract_num_frames(vid_path)
     vid_fps = int(vid_fps)
