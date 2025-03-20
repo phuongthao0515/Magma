@@ -16,7 +16,7 @@ dependencies = [
     "torch==2.3.1",
     "torchvision==0.18.1", 
     "pytorch-lightning>=1.0.8",
-    "transformers @ git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.44.1",
+    "transformers>=4.49.0",
     "tokenizers>=0.15.0",
     "sentencepiece==0.1.99",
     "shortuuid",
