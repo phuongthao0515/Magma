@@ -299,6 +299,7 @@ class LazySupervisedDataset(Dataset):
                 images[key].append(val)
             texts = [item["conversations"]]
         elif 'image' in item and item['image'] is not None:
+            import pdb; pdb.set_trace()
             # cope with multiple images
             image_folder = item['image_folder']
             image_files = item['image']
@@ -472,10 +473,10 @@ def build_joint_dataset(
     data_items, dataset_names, dataset_folders = DataItem(training_size=data_args.training_size, local_run=data_args.local_run)(data_path, processor, None, is_eval=is_eval)
     # pop out open-x dataset
     openx_dataset = None
-    if 'openx_orig' in data_items:
-        openx_dataset = data_items.pop('openx_orig')
-        _ = dataset_folders.pop(dataset_names.index('openx_orig'))
-        _ = dataset_names.pop(dataset_names.index('openx_orig'))
+    if 'openx' in data_items:
+        openx_dataset = data_items.pop('openx')
+        _ = dataset_folders.pop(dataset_names.index('openx'))
+        _ = dataset_names.pop(dataset_names.index('openx'))
 
         lazy_dataset = None
         if len(data_items) > 0:

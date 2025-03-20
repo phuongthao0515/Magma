@@ -59,7 +59,7 @@ class DataItem:
             list_data_dict = torch.load(data_path, map_location="cpu")
             # random.shuffle(list_data_dict)
         else:
-            if self._get_dataset_tag(data_path) == "openx_orig":
+            if self._get_dataset_tag(data_path) == "openx":
                 list_data_dict = OpenXDataItem()(data_path, image_folder, processor=processor, conversation_lib=conversation_lib, local_run=self.local_run)
             elif self._get_dataset_tag(data_path) == "pixelprose":
                 # Load the dataset
@@ -90,7 +90,7 @@ class DataItem:
             for i, (data_path, image_folder) in enumerate(zip(data_dict[data_path_key], data_dict[image_folder_key])):
                 items_temp = self._get_items(data_path, image_folder, processor, conversation_lib)                
                 dataset_tag = self._get_dataset_tag(data_path)                
-                if dataset_tag != "openx_orig":
+                if dataset_tag != "openx":
                     # if self.training_size > 0:
                     #     items_temp = items_temp[:self.training_size]             
                     if dataset_tag in ['sthv2', "ego4d", "exoego4d"]: 

@@ -69,23 +69,15 @@ class RLDSBatchTransform:
         action_token_ids = self.action_tokenizer.encode_actions_to_token_ids(action)
 
         # Construct Chat-based Prompt =>> Input is default query + language instruction, output are the action tokens
-        conversation = [
-            {"from": "human", "value": f"<image>\nWhat action should the robot take to {lang}?"},
-            {"from": "gpt", "value": "<action>"},
+        convs = [
+            {"role": "system", "content": "You are agent that can see, talk and act."},
+            {"role": "user", "content": f"<image>\nWhat action should the robot take to {lang}?"},
+            {"role": "assistant", "content": "<action>"},
         ]
-        prompt_builder = self.prompt_builder_fn.default_conversation.copy()
-        roles = {
-            "human": prompt_builder.roles[0], "user": prompt_builder.roles[0], "gpt": prompt_builder.roles[1], "assistant": prompt_builder.roles[1], "agent": prompt_builder.roles[1]
-        }
-        # Apply prompt templates
-        prompt_builder.messages = []
-        for j, sentence in enumerate(conversation):
-            role = roles[sentence["from"]]
-            assert role == prompt_builder.roles[j % 2], f"{i}"
-            prompt_builder.append_message(role, sentence["value"])
+        prompt = self.base_tokenizer.apply_chat_template(convs, tokenize=False, add_generation_prompt=False)
 
         # Tokenize (w/ `base_tokenizer`)
-        input_ids = self.base_tokenizer(prompt_builder.get_prompt(), add_special_tokens=True).input_ids
+        input_ids = self.base_tokenizer(prompt, add_special_tokens=True).input_ids
 
         action_token_len = len(action_token_ids)
         action_placeholder_token_id = self.base_tokenizer.convert_tokens_to_ids("<action>")
@@ -147,7 +139,7 @@ class RLDSBatchTransform:
         labels[: -(action_token_len + 2)] = IGNORE_INDEX
         if not self.predict_stop_token:
             labels[-1] = IGNORE_INDEX
-        
+                
         return dict(pixel_values=images['pixel_values'], image_sizes=images['image_sizes'], pixel_values_future=pixel_values_future, input_ids=input_ids, labels=labels, dataset_name=dataset_name) 
         # return dict(pixel_values=pixel_values, pixel_values_future=pixel_values_future, action=action, conversation=conversation, dataset_name=dataset_name)
 
