@@ -78,6 +78,7 @@ We will be releasing all the following contents:
 - [Data Preprocessing](#data-preprocessing)
   - [SoM and ToM Generation](#som-and-tom-generation)
 - [Model Training](#model-training)
+  - [Pretraining on Open-X without SoM/ToM](#pretraining-on-open-x-without-somtom)
   - [Finetuning on Magma-820K](#finetuning-on-magma-820k)
 - [Model Usage](#model-usage)
     - [Inference with Huggingface Transformers](#inference-with-huggingface-transformers)
@@ -207,7 +208,32 @@ And then you can find two videos in the `tools/som_tom/videos` folder. The origi
 
 ## Model Training
 
-We provide the instructions to finetune Magma-8B on different downstream tasks.
+We provide the instructions to pretrain LLama-3-8B-Instruct on Open-X-Embodiment and finetune Magma-8B on different downstream tasks.
+
+### Pretraining on Open-X without SoM/ToM
+
+* Data Preparation
+
+Download Open-X-Embodiment from the official site. Then edit the data config file [openx.yaml](data_configs/openx.yaml) accordingly. The data config file should look like this:
+
+```yaml
+# a list of all the data paths
+DATA_PATH: 
+  - "/path/to/open-x"
+IMAGE_FOLDER:
+  - "siglip-224px+mx-oxe-magic-soup"    
+LANGUAGE_PATH:
+  - ""
+```
+
+* Pretrain on OpenX
+
+Once set up the dataset and config, you can run the following command to finetune the model:
+
+```bash
+sh scripts/pretrain/pretrain_openx.sh
+```
+* Benefit: We spent tremendous effort to decouple the Open-X dataloader from OpenVLA and make it compatible with other datasets used in our experiments*
 
 ### Finetuning on Magma-820K
 
@@ -215,7 +241,7 @@ We provide the instructions to finetune Magma-8B on different downstream tasks.
 
 Download annotation file from [MagmaAI/Magma-820K](https://huggingface.co/datasets/MagmaAI/Magma-820K). Please prepare the image data according to the dataset list in the dataset page. Once finished, please edit [magma_820k.yaml](data_configs/magma_820k.yaml) file accordingly.
 
-```sh
+```yaml
 # a list of all the data paths
 DATA_PATH: 
   - "/path/to/magma_820k.json"
@@ -228,7 +254,7 @@ IMAGE_FOLDER:
 Once set up the dataset and config, you can run the following command to finetune the model:
 
 ```bash
-sh scripts/finetune_magma_820k.sh
+sh scripts/finetune/finetune_magma_820k.sh
 ```
 
 ## Model Usage
