@@ -98,7 +98,7 @@ We will be releasing all the following contents:
 <img src="assets/images/magma_intro_fig.png?raw=true" width="50%">
 </div>
 
-**Magma is a foundation model for multimodal AI agents**. As the bedrock for multimodal agentic models, it should possess strong capabilities to perceive the multimodal groundingly world AND takes goal-driven actions precisely (see above figure). With this in mind, we are striving for the following goals:
+**Magma is a foundation model for multimodal AI agents**. As the bedrock for multimodal agentic models, it should possess strong capabilities to perceive the multimodal world AND takes goal-driven actions precisely (see above figure). With this in mind, we are striving for the following goals:
 
 * **Verbal and spatial-temporal intelligence:** Magma is supposed to have both strong verbal and spatial-temporal intelligence to understand images and videos, ground its actions on the observations, and further translate the external goal into action plan and executions.
 * **Digital and physical world:** Magma should not be limited to either the digital world (e.g., web navigation) or the physical world (e.g., robotics manipulation), but rather be able to work across both worlds, just like humans ourselves.
