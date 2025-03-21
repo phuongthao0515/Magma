@@ -178,6 +178,9 @@ pip install decord
 
 ⚠️ Please make sure you have installed the transformers with correct version (>=4.49.0). If you see some abnormal behavior, please check the version of transformers, and probably see below for the customized transformers.
 
+<details>
+<summary>Click to expand</summary>
+
 ### Customized Transformers
 
 ⚠️ One important thing to note is that our model uses [ConvNext](https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/convnext.py) as the backbone, which contains a layer scaler parameter [gamma](https://github.com/huggingface/pytorch-image-models/blob/e44f14d7d2f557b9f3add82ee4f1ed2beefbb30d/timm/models/convnext.py#L144). This leads to a bug of Transformers library as it automatically replace the 'gamma' with 'weight' when loading the model. To fix this, we need to modify the 'transformers/models/auto/modeling_auto.py' file as follows:
@@ -197,7 +200,7 @@ or the newest version:
 pip install git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.48.2
 ```
 
-Great news! The HF team has fixed this issue in the latest version of transformers. So you can also use the latest version of transformers>=4.49.0 if you don't want to modify the code.
+</details>
 
 ## Data Preprocessing
 
