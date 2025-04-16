@@ -7,7 +7,7 @@ Evaluating Magma on [LIBERO](https://github.com/Lifelong-Robot-Learning/LIBERO).
 Clone and install LIBERO and other requirements:
 ```
 git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
-pip install -r libero_quick_start/requirements.txt
+pip install -r agents/libero/requirements.txt
 cd LIBERO
 pip install -e .
 ```

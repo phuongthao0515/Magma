@@ -38,9 +38,11 @@ ACTIONS = ["up", "down", "left", "right", "static"]
 
 # Load AI Model
 magma_model_id = "microsoft/Magma-8B"
-magam_model = AutoModelForCausalLM.from_pretrained(magma_model_id, trust_remote_code=True)
-magma_processor = AutoProcessor.from_pretrained(magma_model_id, trust_remote_code=True)
-magam_model.to("cuda")
+
+dtype = torch.bfloat16
+magma_model = AutoModelForCausalLM.from_pretrained(magma_model_id, trust_remote_code=True, torch_dtype=dtype)
+magma_processor = AutoProcessor.from_pretrained(magma_model_id, trust_remote_code=True, torch_dtype=dtype)
+magma_model.to("cuda")
 
 # Load magma image
 magma_img = pygame.image.load("./assets/images/magma_game.png")
@@ -144,7 +146,7 @@ def play_game():
     inputs = magma_processor(images=[pil_img], texts=prompt, return_tensors="pt")
     inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
     inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)    
-    inputs = inputs.to("cuda")
+    inputs = inputs.to("cuda").to(dtype)
     generation_args = { 
         "max_new_tokens": 10, 
         "temperature": 0, 
@@ -152,8 +154,9 @@ def play_game():
         "use_cache": True,
         "num_beams": 1,
     }
+
     with torch.inference_mode():
-        generate_ids = magam_model.generate(**inputs, **generation_args)
+        generate_ids = magma_model.generate(**inputs, **generation_args)
     generate_ids = generate_ids[:, inputs["input_ids"].shape[-1] :]
     action = magma_processor.decode(generate_ids[0], skip_special_tokens=True).strip()
     # extract mark id fro action use re
