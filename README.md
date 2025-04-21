@@ -84,15 +84,18 @@ We will be releasing all the following contents:
   - [Pretraining on Open-X without SoM/ToM](#pretraining-on-open-x-without-somtom)
   - [Finetuning on Magma-820K](#finetuning-on-magma-820k)
 - [Model Usage](#model-usage)
+  - [Inference](#inference)
     - [Inference with Huggingface Transformers](#inference-with-huggingface-transformers)
     - [Inference with local code from this repo](#inference-with-local-code-from-this-repo)
-    - [Evaluation with lmms-eval](#evaluation-with-lmms-eval)
-    - [Evaluation with SimplerEnv](#evaluation-with-simplerenv)
-    - [Multi-images or Video](#multi-images-or-video)
-    - [Agent Demos](#agent-demos)
-        - [UI Agent](#ui-agent)
-        - [Gaming Agent](#gaming-agent)
-        - [Robot Visual Planning](#robot-visual-planning)
+    - [Inference with bitsandbytes](#inference-with-bitsandbytes)
+    - [Benchmarking](#benchmarking)
+  - [Evaluation with lmms-eval](#evaluation-with-lmms-eval)
+  - [Evaluation with SimplerEnv](#evaluation-with-simplerenv)
+  - [Multi-images or Video](#multi-images-or-video)
+  - [Agent Demos](#agent-demos)
+      - [UI Agent](#ui-agent)
+      - [Gaming Agent](#gaming-agent)
+      - [Robot Visual Planning](#robot-visual-planning)
 - [Citation](#citation)
 - [Acknowledgements](#acknowledgements)
 
@@ -270,7 +273,7 @@ sh scripts/finetune/finetune_magma_820k.sh
 
 ## Model Usage
 
-### Inference Sample Code
+### Inference
 
 #### Inference with Huggingface Transformers
 
