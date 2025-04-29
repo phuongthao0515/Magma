@@ -73,7 +73,9 @@ We will be releasing all the following contents:
 - [x] Training code
 - [x] Open-XE pretraining data with traces
 - [x] Video pretraining data with traces
-
+- [ ] SeeClick and Vision2UI pretraining data with SoM
+- [ ] UI/Libero finetuning script
+- [ ] Video finetune script
 
 ## :clipboard: Outline
 - [What is Magma?](#what-is-magma)
