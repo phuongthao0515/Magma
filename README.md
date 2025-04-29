@@ -92,6 +92,7 @@ We will be releasing all the following contents:
   - [Evaluation with lmms-eval](#evaluation-with-lmms-eval)
   - [Evaluation with SimplerEnv](#evaluation-with-simplerenv)
   - [Multi-images or Video](#multi-images-or-video)
+  - [API Server](#api-server) 
   - [Agent Demos](#agent-demos)
       - [UI Agent](#ui-agent)
       - [Gaming Agent](#gaming-agent)
@@ -453,6 +454,43 @@ prompt = processor.tokenizer.apply_chat_template(convs, tokenize=False, add_gene
 inputs = processor(images=[image1,image2,image3], texts=prompt, return_tensors="pt")
 ```
 Our model will handle the visual token filling for you!
+
+### API Server
+
+We provide a FastAPI server for deploying Magma as a REST API service, which enables:
+- Vision and language processing via REST endpoints
+- Action prediction for robotics applications
+- Support for both base64-encoded images and file uploads
+
+The server can be deployed in three ways:
+1. **Run directly**: Simplest option for development
+2. **Docker container**: Recommended for production
+3. **Native system service**: For system integration
+
+#### Quick Start
+
+```bash
+cd server
+./magma-server.sh run
+```
+
+This will set up a conda environment, install dependencies, and start the server on port 8080.
+
+#### Docker Deployment
+
+```bash
+cd server
+./magma-server.sh docker up
+```
+
+#### API Endpoints
+
+The API exposes the following endpoints:
+- `GET /health` - Check if the server is running and model is loaded
+- `POST /predict` - Predict using base64-encoded image
+- `POST /predict_from_file` - Predict using uploaded image file
+
+For more details, see the [Server README](server/README.md).
 
 ### Agent Demos
 
