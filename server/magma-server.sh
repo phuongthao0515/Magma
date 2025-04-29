@@ -73,21 +73,17 @@ case "$1" in
         echo -e "${YELLOW}Activating conda environment 'magma'...${NC}"
         conda activate magma || { echo -e "${RED}Failed to activate conda environment${NC}"; exit 1; }
         
-        # Clean installation approach that leverages pip's dependency resolver
+        # Clean installation approach - first PyTorch, then the rest
         echo -e "${GREEN}Installing Magma with dependencies...${NC}"
         cd ..
         
-        # First install the package with core dependencies (no flash-attn)
-        echo -e "${YELLOW}Installing core package...${NC}"
-        pip install -e . || { echo -e "${RED}Failed to install core package${NC}"; exit 1; }
+        # First install PyTorch (needed for flash-attn)
+        echo -e "${YELLOW}Installing PyTorch first...${NC}"
+        pip install torch torchvision
         
-        # Then install server dependencies
-        echo -e "${GREEN}Installing server dependencies...${NC}" 
-        pip install -e ".[server]" || echo -e "${YELLOW}Some server dependencies couldn't be installed, but we can continue${NC}"
-        
-        # Try to install advanced dependencies (including flash-attn) but don't fail if it doesn't work
-        echo -e "${GREEN}Attempting to install advanced dependencies...${NC}"
-        pip install -e ".[advanced]" || echo -e "${YELLOW}Advanced dependencies couldn't be installed, but basic functionality will still work${NC}"
+        # Then install the Magma package with all dependencies
+        echo -e "${YELLOW}Installing package with all dependencies...${NC}"
+        pip install -e ".[server]" || { echo -e "${YELLOW}Some dependencies may not have installed properly${NC}"; }
         
         cd server
         

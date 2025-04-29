@@ -12,10 +12,9 @@ The fastest way to run the server is:
 
 This command will:
 1. Create or activate a conda environment named "magma"
-2. Install the Magma package with core dependencies
-3. Install server-specific dependencies
-4. Attempt to install advanced dependencies (like flash-attn)
-5. Start the server directly
+2. Install PyTorch first
+3. Install the Magma package with all dependencies (including server requirements)
+4. Start the server directly
 
 Note: You must have conda (Miniconda or Anaconda) installed on your system. 
 The script will automatically detect and use it.
@@ -48,7 +47,7 @@ This API provides:
 
 This server leverages the main Magma package and installs server-specific dependencies through the optional `[server]` dependencies in pyproject.toml. All server-specific dependencies are defined in one place, avoiding duplicate requirements files.
 
-> **Note on Dependency Installation**: Some dependencies like `flash-attn` have complex build requirements. We've moved `flash-attn` to an optional `[advanced]` dependency section in pyproject.toml. The installation scripts now use a cleaner approach: first install core dependencies, then server-specific dependencies, and finally attempt to install advanced features like `flash-attn`. This ensures the server can run with minimal functionality even if some advanced dependencies can't be built in your environment.
+> **Note on Dependency Installation**: Some dependencies like `flash-attn` require PyTorch to be installed first. Our installation scripts follow a simple two-step process: first install PyTorch, then install the rest of the dependencies. This simple approach ensures proper build order for packages that need PyTorch to be present during installation.
 
 ### Prerequisites
 
@@ -102,7 +101,8 @@ We provide a unified script to manage all deployment methods:
 1. Install the package with server dependencies:
    ```bash
    # From the repository root
-   pip install -e ".[server]"
+   pip install torch torchvision  # Install PyTorch first
+   pip install -e ".[server]"     # Then install Magma with server dependencies
    ```
 
 2. Run the server directly:
@@ -133,7 +133,14 @@ We provide a unified script to manage all deployment methods:
    ./manage_magma_service.sh setup-conda
    ```
 
-3. Install and start the service:
+3. Edit the service file to replace the placeholder with your username:
+   ```bash
+   # Replace USER with your username in magma-api.service
+   sed -i 's/User=USER/User=your_username/' magma-api.service
+   sed -i 's/Group=USER/Group=your_username/' magma-api.service
+   ```
+
+4. Install and start the service:
    ```bash
    sudo ./manage_magma_service.sh install
    sudo ./manage_magma_service.sh start

@@ -49,6 +49,7 @@ dependencies = [
     "evaluate", 
     "sqlitedict",
     "open_clip_torch",
+    "flash-attn",
 ]
 
 [project.optional-dependencies]
@@ -89,12 +90,6 @@ server = [
     "uvicorn",
     "python-multipart",
     "pillow"
-]
-advanced = [
-    "flash-attn"
-]
-full = [
-    "flash-attn"
 ]
 
 [tool.setuptools.packages.find]

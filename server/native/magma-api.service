@@ -4,8 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=a3r
-Group=a3r
+# Replace USER with your username
+User=USER
+Group=USER
 WorkingDirectory=%h/repos/Magma
 Environment="HOME=%h"
 Environment="PATH=%h/miniconda3/bin:%h/anaconda3/bin:$PATH"

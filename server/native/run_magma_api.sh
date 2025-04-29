@@ -32,20 +32,16 @@ echo "Using Python: $(which python)"
 echo "Python version: $(python --version)"
 echo "Current directory: $(pwd)"
 
-# Clean installation approach that leverages pip's dependency resolver
+# Clean installation approach - first PyTorch, then the rest
 cd ../..
 
-# First install the package with core dependencies (no flash-attn)
-echo "Installing core package..."
-pip install -e .
+# First install PyTorch (needed for flash-attn)
+echo "Installing PyTorch first..."
+pip install torch torchvision
 
-# Then install server dependencies
-echo "Installing server dependencies..." 
-pip install -e ".[server]" || echo "Some server dependencies couldn't be installed, but we can continue"
-
-# Try to install advanced dependencies (including flash-attn) but don't fail if it doesn't work
-echo "Attempting to install advanced dependencies..."
-pip install -e ".[advanced]" || echo "Advanced dependencies couldn't be installed, but basic functionality will still work"
+# Then install the Magma package with all dependencies 
+echo "Installing Magma with all dependencies..."
+pip install -e ".[server]"
 
 cd server
 
