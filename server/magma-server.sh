@@ -44,10 +44,53 @@ case "$1" in
     run)
         # Simple run command to start the server directly
         cd "$(dirname "$0")"
-        echo -e "${GREEN}Installing Magma with server dependencies...${NC}"
+        
+        # Check if conda is available
+        if ! command -v conda &> /dev/null; then
+            echo -e "${RED}Conda is not installed or not in PATH${NC}"
+            echo -e "${YELLOW}Please install Miniconda or Anaconda first:${NC}"
+            echo -e "https://docs.conda.io/en/latest/miniconda.html"
+            exit 1
+        fi
+        
+        # Source conda for the current shell session
+        if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+            . "$HOME/miniconda3/etc/profile.d/conda.sh"
+        elif [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
+            . "$HOME/anaconda3/etc/profile.d/conda.sh"
+        else
+            echo -e "${RED}Could not find conda.sh. Conda might not be properly installed.${NC}"
+            exit 1
+        fi
+        
+        # Check if magma environment already exists
+        if ! conda env list | grep -q "^magma "; then
+            echo -e "${YELLOW}Creating conda environment 'magma'...${NC}"
+            conda create -n magma python=3.10 -y || { echo -e "${RED}Failed to create conda environment${NC}"; exit 1; }
+        fi
+        
+        # Activate the conda environment
+        echo -e "${YELLOW}Activating conda environment 'magma'...${NC}"
+        conda activate magma || { echo -e "${RED}Failed to activate conda environment${NC}"; exit 1; }
+        
+        # Clean installation approach that leverages pip's dependency resolver
+        echo -e "${GREEN}Installing Magma with dependencies...${NC}"
         cd ..
-        pip install -e ".[server]" || { echo -e "${RED}Failed to install dependencies${NC}"; exit 1; }
+        
+        # First install the package with core dependencies (no flash-attn)
+        echo -e "${YELLOW}Installing core package...${NC}"
+        pip install -e . || { echo -e "${RED}Failed to install core package${NC}"; exit 1; }
+        
+        # Then install server dependencies
+        echo -e "${GREEN}Installing server dependencies...${NC}" 
+        pip install -e ".[server]" || echo -e "${YELLOW}Some server dependencies couldn't be installed, but we can continue${NC}"
+        
+        # Try to install advanced dependencies (including flash-attn) but don't fail if it doesn't work
+        echo -e "${GREEN}Attempting to install advanced dependencies...${NC}"
+        pip install -e ".[advanced]" || echo -e "${YELLOW}Advanced dependencies couldn't be installed, but basic functionality will still work${NC}"
+        
         cd server
+        
         echo -e "${GREEN}Starting Magma API server...${NC}"
         python main.py
         ;;

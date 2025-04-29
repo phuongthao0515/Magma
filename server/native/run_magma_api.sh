@@ -32,9 +32,21 @@ echo "Using Python: $(which python)"
 echo "Python version: $(python --version)"
 echo "Current directory: $(pwd)"
 
-# Install Magma with server dependencies if needed
+# Clean installation approach that leverages pip's dependency resolver
 cd ../..
-pip install -e ".[server]"
+
+# First install the package with core dependencies (no flash-attn)
+echo "Installing core package..."
+pip install -e .
+
+# Then install server dependencies
+echo "Installing server dependencies..." 
+pip install -e ".[server]" || echo "Some server dependencies couldn't be installed, but we can continue"
+
+# Try to install advanced dependencies (including flash-attn) but don't fail if it doesn't work
+echo "Attempting to install advanced dependencies..."
+pip install -e ".[advanced]" || echo "Advanced dependencies couldn't be installed, but basic functionality will still work"
+
 cd server
 
 # Run the FastAPI application

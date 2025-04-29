@@ -10,7 +10,17 @@ The fastest way to run the server is:
 ./magma-server.sh run
 ```
 
-This command will install the required dependencies and start the server directly.
+This command will:
+1. Create or activate a conda environment named "magma"
+2. Install the Magma package with core dependencies
+3. Install server-specific dependencies
+4. Attempt to install advanced dependencies (like flash-attn)
+5. Start the server directly
+
+Note: You must have conda (Miniconda or Anaconda) installed on your system. 
+The script will automatically detect and use it.
+
+All dependency versions are specified in pyproject.toml, making it easy to update them in a single place.
 
 ## Directory Structure
 
@@ -38,10 +48,13 @@ This API provides:
 
 This server leverages the main Magma package and installs server-specific dependencies through the optional `[server]` dependencies in pyproject.toml. All server-specific dependencies are defined in one place, avoiding duplicate requirements files.
 
+> **Note on Dependency Installation**: Some dependencies like `flash-attn` have complex build requirements. We've moved `flash-attn` to an optional `[advanced]` dependency section in pyproject.toml. The installation scripts now use a cleaner approach: first install core dependencies, then server-specific dependencies, and finally attempt to install advanced features like `flash-attn`. This ensures the server can run with minimal functionality even if some advanced dependencies can't be built in your environment.
+
 ### Prerequisites
 
 - NVIDIA GPU with CUDA support
 - Python 3.10+
+- Conda (Miniconda or Anaconda) for environment management
 
 ### Using the Unified Management Script
 

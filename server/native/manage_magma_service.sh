@@ -66,9 +66,21 @@ setup_conda_env() {
         conda activate magma
     fi
     
-    # Install Magma with server dependencies
+    # Clean installation approach that leverages pip's dependency resolver
     cd ../..
-    pip install -e ".[server]"
+    
+    # First install the package with core dependencies (no flash-attn)
+    echo -e "${YELLOW}Installing core package...${NC}"
+    pip install -e .
+    
+    # Then install server dependencies
+    echo -e "${YELLOW}Installing server dependencies...${NC}" 
+    pip install -e ".[server]" || echo -e "${YELLOW}Some server dependencies couldn't be installed, but we can continue${NC}"
+    
+    # Try to install advanced dependencies (including flash-attn) but don't fail if it doesn't work
+    echo -e "${YELLOW}Attempting to install advanced dependencies...${NC}"
+    pip install -e ".[advanced]" || echo -e "${YELLOW}Advanced dependencies couldn't be installed, but basic functionality will still work${NC}"
+    
     cd server/native
     
     echo -e "${GREEN}Conda environment 'magma' is ready.${NC}"
