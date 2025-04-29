@@ -85,6 +85,12 @@ agent = [
     "supervision==0.18.0",
     "ultralytics==8.3.78", 
 ]
+server = [
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "pillow"
+]
 
 [tool.setuptools.packages.find]
 exclude = [
