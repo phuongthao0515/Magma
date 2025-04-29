@@ -51,6 +51,7 @@
 * **Scalable Pretraining Strategy:** Magma is designed to be **learned scalably from unlabeled videos** in the wild in addition to the existing agentic data, making it strong generalization ability and suitable for real-world applications!
 
 ## :fire: News
+* **[2025.04.29]** [Mind2Web](https://huggingface.co/datasets/MagmaAI/Magma-Mind2Web-SoM) and [AITW](https://huggingface.co/datasets/MagmaAI/Magma-AITW-SoM) with SoM prompting annotations are released on hugging face! We used them for our Magma downstream finetuning and reported the results in our table.
 * **[2025.04.12]** 🔥We released the pretraining videos with visual traces on hugging face [Magma-Video-ToM](https://huggingface.co/datasets/MagmaAI/Magma-Video-ToM).
 * **[2025.04.06]** Open X-Embodiment pretraining data with visual traces can be downloaded from [Magma-OXE-ToM](https://huggingface.co/datasets/MagmaAI/Magma-OXE-ToM).
 * **[2025.03.16]** We released the demo code for generating SoM and ToM for instructional videos (i.e., Alg. 2 in our paper) in [SoM/ToM Generation](#som-and-tom-generation).
