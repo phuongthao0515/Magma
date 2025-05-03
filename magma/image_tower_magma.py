@@ -21,8 +21,6 @@ import logging
 # Configure root logger
 logging.basicConfig(level=logging.INFO)
 
-import numpy as np
-import torchvision
 from transformers.image_processing_utils import BaseImageProcessor, BatchFeature
 from transformers.image_transforms import (
     convert_to_rgb,
