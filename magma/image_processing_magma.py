@@ -18,7 +18,6 @@
 from typing import List, Optional, Union
 import ast
 import numpy as np
-import torchvision
 from transformers.image_processing_utils import BaseImageProcessor, BatchFeature
 from transformers.image_transforms import (
     convert_to_rgb,
@@ -161,8 +160,8 @@ class MagmaImageProcessor(BaseImageProcessor):
 
     Args:
         anyres_strategy (`str`):
-            strategy to cope with high-resolution images. one conventional way is multi-crop and many other works to accomadate clip-vit models. 
-            however, since we are using convnext, which is essentially convnet, so we can use arbitary resolution images. as such, we use global strategy by defualt,
+            strategy to cope with high-resolution images. one conventional way is multi-crop and many other works to accommodate clip-vit models. 
+            however, since we are using convnext, which is essentially convnet, so we can use arbitary resolution images. as such, we use global strategy by default,
             i.e., directly resize image holistically to a certain resolution.
         base_img_size (int, *optional*, defaults to 768):
             as convnext has 1/32 downsample rate, we use 768 as the base resolution so that the resulted feature map is 24x24.

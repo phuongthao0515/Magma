@@ -18,7 +18,6 @@ Processor class for Magma.
 
 from typing import List, Optional, Union
 
-import transformers
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.image_utils import ImageInput
 from transformers.processing_utils import ProcessorMixin
@@ -63,8 +62,8 @@ class MagmaProcessor(ProcessorMixin):
         """
         Main method to prepare for the model one or several sequences(s) and image(s). This method forwards the `text`
         and `kwargs` arguments to LlamaTokenizerFast's [`~LlamaTokenizerFast.__call__`] if `text` is not `None` to encode
-        the text. To prepare the image(s), this method forwards the `images` and `kwrags` arguments to
-        MagmaImageProcessor's [`~MagmaImageProcessor.__call__`] if `images` is not `None`. Please refer to the doctsring
+        the text. To prepare the image(s), this method forwards the `images` and `kwargs` arguments to
+        MagmaImageProcessor's [`~MagmaImageProcessor.__call__`] if `images` is not `None`. Please refer to the docstring
         of the above two methods for more information.
 
         Args:

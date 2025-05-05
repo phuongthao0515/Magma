@@ -397,7 +397,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                 Indices of positions of each input sequence tokens in the position embeddings. Selected in the range `[0,
                 config.n_positions - 1]`.
             labels (`torch.Tensor` of shape `(batch_size, sequence_length)`, *optional*)
-                :abels need to be recalculated to support training (if provided)
+                :labels need to be recalculated to support training (if provided)
             image_token_index (`int`, *optional*)
                 Token id used to indicate the special "image" token. Defaults to `config.image_token_index`
             ignore_index (`int`, *optional*)
