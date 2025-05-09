@@ -41,7 +41,6 @@ dependencies = [
     "tensorflow_datasets==4.9.3",
     "tensorflow_graphics==2021.12.3",    
     "draccus",    
-    "pyav",
     "numba", 
     "dlimp @ git+https://github.com/moojink/dlimp_openvla",
     "loguru", 
