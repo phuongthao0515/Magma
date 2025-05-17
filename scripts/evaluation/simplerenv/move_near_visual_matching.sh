@@ -9,7 +9,7 @@ declare -a arr=(
 env_name=MoveNearGoogleBakedTexInScene-v0
 # env_name=MoveNearGoogleBakedTexInScene-v1
 scene_name=google_pick_coke_can_1_v4
-rgb_overlay_path=./ManiSkill2_real2sim/data/real_inpainting/google_move_near_real_eval_1.png
+rgb_overlay_path=./SimplerEnv/ManiSkill2_real2sim/data/real_inpainting/google_move_near_real_eval_1.png
 
 # URDF variations
 declare -a urdf_version_arr=("recolor_cabinet_visual_matching_1" "recolor_tabletop_visual_matching_1" "recolor_tabletop_visual_matching_2" None)
@@ -27,12 +27,12 @@ for urdf_version in "${urdf_version_arr[@]}"; do
         timestamp=$(date +"%Y%m%d_%H%M%S")
         log_file="logs/Magma_${env_name}_${urdf_version}_${timestamp}.txt"
         
-        echo "Starting experiment with URDF version: $urdf_version" | tee -a "$log_file"
-        echo "Checkpoint path: $ckpt_path" | tee -a "$log_file"
-        echo "Environment: $env_name" | tee -a "$log_file"
-        echo "Scene: $scene_name" | tee -a "$log_file"
-        echo "GPU ID: $gpu_id" | tee -a "$log_file"
-        echo "-------------------------------------------" | tee -a "$log_file"
+        echo "Starting experiment with URDF version: $urdf_version" >> "$log_file"
+        echo "Checkpoint path: $ckpt_path" >> "$log_file"
+        echo "Environment: $env_name" >> "$log_file"
+        echo "Scene: $scene_name" >> "$log_file"
+        echo "GPU ID: $gpu_id" >> "$log_file"
+        echo "-------------------------------------------" >> "$log_file"
 
         CUDA_VISIBLE_DEVICES=${gpu_id} python simpler_env/main_inference_magma.py --policy-model magma \
             --ckpt-path ${ckpt_path} \
@@ -43,12 +43,13 @@ for urdf_version in "${urdf_version_arr[@]}"; do
             --robot-init-x 0.35 0.35 1 --robot-init-y 0.21 0.21 1 --obj-variation-mode episode --obj-episode-range 0 60 \
             --robot-init-rot-quat-center 0 0 0 1 --robot-init-rot-rpy-range 0 0 1 0 0 1 -0.09 -0.09 1 \
             --additional-env-build-kwargs urdf_version=${urdf_version} \
-            --additional-env-save-tags baked_except_bpb_orange 2>&1 | tee -a "$log_file"
+            --additional-env-save-tags baked_except_bpb_orange >> "$log_file" 2>&1 &
 
-        echo "-------------------------------------------" | tee -a "$log_file"
-        echo "Experiment completed" | tee -a "$log_file"
-        echo "" | tee -a "$log_file"
+        echo "Job started on GPU $gpu_id"
+	((gpu_id++))
     done
 done
+
+wait
 
 echo "All experiments completed. Log files are in the 'logs' directory."
