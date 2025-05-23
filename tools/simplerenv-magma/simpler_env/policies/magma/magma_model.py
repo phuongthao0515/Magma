@@ -6,10 +6,7 @@ import torchvision
 import json
 import sys
 import os
-from transformers import AutoModelForVision2Seq, AutoProcessor
-from magma.image_processing_magma import MagmaImageProcessor
-from magma.processing_magma import MagmaProcessor
-from magma.modeling_magma import MagmaForCausalLM
+from transformers import AutoProcessor, AutoModelForCausalLM
 from transforms3d.euler import euler2axangle
 
 
@@ -19,15 +16,15 @@ action_norm_stats = {
 }
 
 class MagmaInference:
-    def __init__(self, model_name, policy_setup, action_scale=1.0, sticky_gripper_num_repeat=10, unnorm_key=None, sample=False):
+    def __init__(self, model_name, policy_setup, action_scale=1.0, sticky_gripper_num_repeat=10, unnorm_key=None, sample=True):
         if policy_setup == "widowx_bridge":
             self.unnorm_key = "bridge_orig" if unnorm_key is None else unnorm_key
         elif policy_setup == "google_robot":
-            self.unnorm_key = "fractal20220817_data" if unnorm_key is None else unnorm_key
+            self.unnorm_key = "google_robot" if unnorm_key is None else unnorm_key
         self.sticky_gripper_num_repeat = sticky_gripper_num_repeat
 
-        self.processor = MagmaProcessor.from_pretrained(model_name, trust_remote_code=True) 
-        self.vla = MagmaForCausalLM.from_pretrained(
+        self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True) 
+        self.vla = AutoModelForCausalLM.from_pretrained(
             model_name,
 	        device_map="cuda", 
 	        low_cpu_mem_usage=True,        
