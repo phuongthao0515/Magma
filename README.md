@@ -21,7 +21,7 @@
 
 <sup>*</sup> Project lead  <sup>†</sup> First authors  <sup>‡</sup> Second authors  <sup>▽</sup> Leadership  
 
-<h3 style="color:#b22222;"> To Appear at CVPR 2025 </h3>
+<h3 style="color:#b22222;"> CVPR 2025 </h3>
 
 <h4>
 <a href="https://www.arxiv.org/pdf/2502.13130">📄 arXiv Paper</a> &nbsp; 
