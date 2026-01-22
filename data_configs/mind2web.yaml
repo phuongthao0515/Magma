@@ -1,0 +1,13 @@
+# Mind2Web Dataset Configuration
+# Dataset: MagmaAI/Magma-Mind2Web-SoM from HuggingFace
+
+DATA_PATH:
+  - "datasets/mind2web/mind2web_train.json"
+IMAGE_FOLDER:
+  - "datasets/mind2web/images"
+
+# Validation (optional)
+# DATA_PATH_VAL:
+#   - "datasets/mind2web/mind2web_val.json"
+# IMAGE_FOLDER_VAL:
+#   - "datasets/mind2web/images"
