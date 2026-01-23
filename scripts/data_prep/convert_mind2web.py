@@ -1,57 +1,140 @@
 """
-Convert Mind2Web Arrow format (HuggingFace) to JSON + Images (Magma format)
+Convert Mind2Web from HuggingFace to JSON + Images (Magma format)
 
 Usage:
     python scripts/data_prep/convert_mind2web.py
+    python scripts/data_prep/convert_mind2web.py --max_samples 100  # For testing
+    python scripts/data_prep/convert_mind2web.py --split train      # Specific split
 
-Input:  datasets/mind2web/*.arrow
+Input:  Downloads from HuggingFace: MagmaAI/Magma-Mind2Web-SoM
 Output: datasets/mind2web/mind2web_train.json
         datasets/mind2web/images/*.png
 """
 
 import os
 import json
-from datasets import load_from_disk
+import argparse
+from datasets import load_dataset, load_from_disk
 from tqdm import tqdm
 from pathlib import Path
 
 
-def convert_mind2web(
-    arrow_path: str = "datasets/mind2web",
-    output_json: str = "datasets/mind2web/mind2web_train.json",
-    output_images: str = "datasets/mind2web/images",
-    max_samples: int = None  # Set to limit samples for testing
+def download_mind2web(
+    dataset_name: str = "MagmaAI/Magma-Mind2Web-SoM",
+    cache_dir: str = "datasets/mind2web/raw",
+    split: str = "train"
 ):
     """
-    Convert Mind2Web from Arrow format to Magma's JSON + Images format.
+    Download Mind2Web dataset from HuggingFace.
 
     Args:
-        arrow_path: Path to Arrow dataset folder
-        output_json: Output JSON file path
-        output_images: Output images folder path
-        max_samples: Max samples to convert (None = all)
+        dataset_name: HuggingFace dataset name
+        cache_dir: Directory to cache the downloaded dataset
+        split: Dataset split to download (train, test, etc.)
+
+    Returns:
+        The loaded dataset
     """
+    print("=" * 50)
+    print("Downloading Mind2Web from HuggingFace")
+    print("=" * 50)
+    print(f"Dataset: {dataset_name}")
+    print(f"Split: {split}")
+    print(f"Cache dir: {cache_dir}")
+    print()
 
-    # Create images folder
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Check if already downloaded
+    local_path = os.path.join(cache_dir, split)
+    if os.path.exists(local_path):
+        print(f"Found cached dataset at: {local_path}")
+        try:
+            dataset = load_from_disk(local_path)
+            print(f"Loaded cached dataset with {len(dataset)} samples")
+            return dataset
+        except Exception as e:
+            print(f"Failed to load cached dataset: {e}")
+            print("Re-downloading...")
+
+    # Download from HuggingFace
+    print(f"Downloading from HuggingFace: {dataset_name}...")
+    try:
+        dataset = load_dataset(dataset_name, split=split)
+        print(f"Downloaded {len(dataset)} samples")
+
+        print(f"Caching dataset to: {local_path}")
+        dataset.save_to_disk(local_path)
+        print("Dataset cached successfully!")
+
+        return dataset
+    except Exception as e:
+        print(f"Error downloading dataset: {e}")
+        print("\nTrying alternative dataset names...")
+
+        alternative_names = [
+            "osunlp/Mind2Web",
+            "mind2web/mind2web",
+        ]
+        for alt_name in alternative_names:
+            try:
+                print(f"Trying: {alt_name}")
+                dataset = load_dataset(alt_name, split=split)
+                print(f"Success! Downloaded {len(dataset)} samples")
+                dataset.save_to_disk(local_path)
+                return dataset
+            except Exception:
+                continue
+
+        raise RuntimeError(
+            f"Failed to download Mind2Web dataset. "
+            f"Please download manually and place in {cache_dir}"
+        )
+
+
+def convert_mind2web(
+    dataset=None,
+    output_dir: str = "datasets/mind2web",
+    output_json: str = None,
+    output_images: str = None,
+    max_samples: int = None,
+    split: str = "train"
+):
+    """
+    Convert Mind2Web from HuggingFace format to Magma's JSON + Images format.
+
+    Args:
+        dataset: Pre-loaded dataset (if None, will download)
+        output_dir: Base output directory
+        output_json: Output JSON file path (auto-generated if None)
+        output_images: Output images folder path (auto-generated if None)
+        max_samples: Max samples to convert (None = all)
+        split: Dataset split name for output file naming
+    """
+    if output_json is None:
+        output_json = os.path.join(output_dir, f"mind2web_{split}.json")
+    if output_images is None:
+        output_images = os.path.join(output_dir, "images")
+
+    os.makedirs(output_dir, exist_ok=True)
     os.makedirs(output_images, exist_ok=True)
-    print(f"Output images folder: {output_images}")
+    print(f"\nOutput directory: {output_dir}")
+    print(f"Output JSON: {output_json}")
+    print(f"Output images: {output_images}")
 
-    # Load Arrow dataset (saved with save_to_disk)
-    print(f"Loading Arrow dataset from: {arrow_path}")
-    dataset = load_from_disk(arrow_path)
-    print(f"Dataset structure: {dataset}")
+    if dataset is None:
+        dataset = download_mind2web(split=split)
 
-    # Dataset is loaded directly (not DatasetDict)
     data = dataset
-    print(f"Dataset loaded with {len(data)} samples")
+    print(f"\nDataset loaded with {len(data)} samples")
 
-    # Limit samples if specified
     if max_samples:
         data = data.select(range(min(max_samples, len(data))))
         print(f"Limited to {len(data)} samples")
 
     # Convert each sample
     train_data = []
+    skipped = 0
     print("\nConverting samples...")
 
     for idx, item in enumerate(tqdm(data)):
@@ -61,10 +144,11 @@ def convert_mind2web(
             img_path = os.path.join(output_images, img_filename)
 
             # Save image
-            if item['image'] is not None:
+            if 'image' in item and item['image'] is not None:
                 item['image'].save(img_path)
             else:
                 print(f"Warning: Sample {idx} has no image, skipping...")
+                skipped += 1
                 continue
 
             # Create JSON entry (Magma format)
@@ -77,6 +161,7 @@ def convert_mind2web(
 
         except Exception as e:
             print(f"Error processing sample {idx}: {e}")
+            skipped += 1
             continue
 
     # Save JSON
@@ -89,6 +174,7 @@ def convert_mind2web(
     print("Conversion Complete!")
     print("=" * 50)
     print(f"Total samples converted: {len(train_data)}")
+    print(f"Samples skipped: {skipped}")
     print(f"JSON file: {output_json}")
     print(f"Images folder: {output_images}")
     print(f"Images count: {len(os.listdir(output_images))}")
@@ -98,8 +184,90 @@ def convert_mind2web(
         print("\nSample entry:")
         print(json.dumps(train_data[0], indent=2))
 
+    # Verify config file
+    config_path = "data_configs/mind2web.yaml"
+    if os.path.exists(config_path):
+        print(f"\nConfig file exists: {config_path}")
+        print("You can start training with:")
+        print("  bash scripts/finetune/finetune_mind2web_qlora.sh")
+    else:
+        print(f"\nWarning: Config file not found at {config_path}")
+        print("Make sure the config points to the correct data paths.")
+
     return train_data
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Download and convert Mind2Web dataset to Magma format"
+    )
+    parser.add_argument(
+        "--dataset_name",
+        type=str,
+        default="MagmaAI/Magma-Mind2Web-SoM",
+        help="HuggingFace dataset name"
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="train",
+        help="Dataset split to download and convert"
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="datasets/mind2web",
+        help="Output directory for converted data"
+    )
+    parser.add_argument(
+        "--max_samples",
+        type=int,
+        default=None,
+        help="Maximum number of samples to convert (for testing)"
+    )
+    parser.add_argument(
+        "--skip_download",
+        action="store_true",
+        help="Skip download and use existing cached data"
+    )
+
+    args = parser.parse_args()
+
+    print("=" * 50)
+    print("Mind2Web Data Preparation")
+    print("=" * 50)
+    print(f"Dataset: {args.dataset_name}")
+    print(f"Split: {args.split}")
+    print(f"Output: {args.output_dir}")
+    if args.max_samples:
+        print(f"Max samples: {args.max_samples}")
+    print()
+
+    # Download and convert
+    if args.skip_download:
+        # Try to load from cache
+        cache_path = os.path.join(args.output_dir, "raw", args.split)
+        if os.path.exists(cache_path):
+            dataset = load_from_disk(cache_path)
+        else:
+            raise FileNotFoundError(
+                f"No cached dataset found at {cache_path}. "
+                f"Run without --skip_download first."
+            )
+    else:
+        dataset = download_mind2web(
+            dataset_name=args.dataset_name,
+            cache_dir=os.path.join(args.output_dir, "raw"),
+            split=args.split
+        )
+
+    convert_mind2web(
+        dataset=dataset,
+        output_dir=args.output_dir,
+        max_samples=args.max_samples,
+        split=args.split
+    )
+
+
 if __name__ == "__main__":
-    convert_mind2web()
+    main()
