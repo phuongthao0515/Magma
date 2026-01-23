@@ -299,7 +299,7 @@ class LazySupervisedDataset(Dataset):
                 images[key].append(val)
             texts = [item["conversations"]]
         elif 'image' in item and item['image'] is not None:
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             # cope with multiple images
             image_folder = item['image_folder']
             image_files = item['image']
