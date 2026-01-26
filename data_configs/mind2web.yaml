@@ -6,8 +6,8 @@ DATA_PATH:
 IMAGE_FOLDER:
   - "datasets/mind2web/images"
 
-# Validation (optional)
-# DATA_PATH_VAL:
-#   - "datasets/mind2web/mind2web_val.json"
-# IMAGE_FOLDER_VAL:
-#   - "datasets/mind2web/images"
+# Validation data (for evaluation during training)
+DATA_PATH_VAL:
+  - "datasets/mind2web/mind2web_val.json"
+IMAGE_FOLDER_VAL:
+  - "datasets/mind2web/images"
