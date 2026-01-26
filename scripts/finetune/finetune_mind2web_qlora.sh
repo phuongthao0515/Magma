@@ -1,9 +1,13 @@
 #!/bin/bash
 # Mind2Web QLoRA Finetuning Script
 # Uses 4-bit quantization with LoRA for memory-efficient training
+# Includes automatic evaluation after training
 
 MODEL_PATH="microsoft/Magma-8B"
 OUTPUT_DIR="./checkpoints/finetune-mind2web-qlora"
+DATA_PATH="datasets/mind2web"
+EVAL_OUTPUT_DIR="results/mind2web_eval"
+EVAL_MAX_SAMPLES=200  # Number of samples for evaluation (set to 0 to skip eval)
 
 # Number of GPUs (adjust as needed)
 NUM_GPUS=1
@@ -117,4 +121,38 @@ else
         --lora_dropout 0.05 \
         --double_quant True \
         --quant_type nf4
+fi
+
+echo ""
+echo "=========================================="
+echo "Training Complete!"
+echo "=========================================="
+echo "Checkpoints saved to: $OUTPUT_DIR"
+echo ""
+
+# Run evaluation on all checkpoints
+if [ "$EVAL_MAX_SAMPLES" -gt 0 ]; then
+    echo "=========================================="
+    echo "Running Evaluation on Checkpoints..."
+    echo "=========================================="
+
+    python scripts/evaluation/eval_mind2web.py \
+        --checkpoint_dir $OUTPUT_DIR \
+        --base_model $MODEL_PATH \
+        --data $DATA_PATH \
+        --output_dir $EVAL_OUTPUT_DIR \
+        --max_samples $EVAL_MAX_SAMPLES \
+        --eval_all \
+        --use_4bit
+
+    echo ""
+    echo "=========================================="
+    echo "Evaluation Complete!"
+    echo "=========================================="
+    echo "Results saved to: $EVAL_OUTPUT_DIR"
+    echo "Check $EVAL_OUTPUT_DIR/checkpoint_ranking.json for best checkpoint"
+else
+    echo "Skipping evaluation (EVAL_MAX_SAMPLES=0)"
+    echo "To evaluate manually, run:"
+    echo "  python scripts/evaluation/eval_mind2web.py --checkpoint_dir $OUTPUT_DIR --eval_all"
 fi
