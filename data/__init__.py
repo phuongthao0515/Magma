@@ -1,8 +1,8 @@
 # datasets
 from .epic import epic
 from .ego4d import ego4d
-from .openx import openx
-from .openx_magma import openx_magma
+# from .openx import openx
+# from .openx_magma import openx_magma
 from .magma import magma
 from .llava import llava
 from .seeclick import seeclick
