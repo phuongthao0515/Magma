@@ -3,6 +3,7 @@ import torch
 
 from torch.utils.data import Sampler
 from torch.cuda import synchronize
+import numpy as np
 
 from transformers import Trainer
 from transformers.trainer import (
@@ -11,9 +12,11 @@ from transformers.trainer import (
     has_length,
     logger,
 )
-from transformers.pytorch_utils import ALL_LAYERNORM_LAYERS
+# from transformers.pytorch_utils import ALL_LAYERNORM_LAYERS
 from typing import List, Optional
+import torch.nn as nn
 
+ALL_LAYERNORM_LAYERS = [nn.LayerNorm]
 
 def maybe_zero_3(param, ignore_status=False, name=None):
     from deepspeed import zero
