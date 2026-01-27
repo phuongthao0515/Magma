@@ -22,7 +22,11 @@ import logging
 import pathlib
 from typing import Dict, Optional, Sequence, List
 import torch
-import deepspeed
+try:
+    import deepspeed
+except ImportError:
+    deepspeed = None
+    print("DeepSpeed not installed. Single GPU training will work without it.")
 import glob
 import transformers
 import tokenizers
@@ -361,8 +365,8 @@ def train():
         from transformers import BitsAndBytesConfig
         bnb_model_from_pretrained_args.update(dict(
             device_map={"": training_args.device},
-            load_in_4bit=training_args.bits == 4,
-            load_in_8bit=training_args.bits == 8,
+            # load_in_4bit=training_args.bits == 4,
+            # load_in_8bit=training_args.bits == 8,
             quantization_config=BitsAndBytesConfig(
                 load_in_4bit=training_args.bits == 4,
                 load_in_8bit=training_args.bits == 8,
@@ -381,6 +385,7 @@ def train():
             cache_dir=training_args.cache_dir,
             attn_implementation="flash_attention_2" if model_args.flash_attn_2_enabled else None,
             torch_dtype=(torch.bfloat16 if training_args.bf16 else None),
+            low_cpu_mem_usage=True,
             **bnb_model_from_pretrained_args
         )
         magma_processor = MagmaProcessor.from_pretrained(
