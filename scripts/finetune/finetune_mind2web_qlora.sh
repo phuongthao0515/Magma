@@ -69,7 +69,7 @@ if [ "$NUM_GPUS" -eq 1 ]; then
 else
     # For multi-GPU with DeepSpeed ZeRO-2 (ZeRO-3 doesn't work well with quantization)
     torchrun --nproc_per_node=$NUM_GPUS train.py \
-        --deepspeed ./trainer/deepspeed/zero2.json \
+        
         --model_name_or_path $MODEL_PATH \
         --version magma_instruct \
         --data_path "data_configs/mind2web.yaml" \

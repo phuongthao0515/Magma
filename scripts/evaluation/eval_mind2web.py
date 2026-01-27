@@ -23,7 +23,7 @@ import glob
 import torch
 from tqdm import tqdm
 from PIL import Image
-from datasets import load_from_disk
+from datasets import Dataset
 from peft import PeftModel
 from transformers import BitsAndBytesConfig
 
@@ -172,7 +172,7 @@ def compute_metrics(results: list) -> dict:
 
 
 def evaluate_checkpoint(checkpoint_path: str, dataset, processor, base_model: str,
-                        max_samples: int = None, use_4bit: bool = True) -> dict:
+                        max_samples: int = None, use_4bit: bool = True, data_dir: str = None) -> dict:
     """Evaluate a single checkpoint."""
     print(f"\n{'='*60}")
     print(f"Evaluating: {checkpoint_path}")
@@ -184,14 +184,26 @@ def evaluate_checkpoint(checkpoint_path: str, dataset, processor, base_model: st
     # Prepare samples
     samples = dataset
     if max_samples:
-        samples = dataset.select(range(min(max_samples, len(dataset))))
+        samples = dataset[:min(max_samples, len(dataset))]
 
     # Run inference
     results = []
     for sample in tqdm(samples, desc="Evaluating"):
-        image = sample['image']
+        # Load image from path
+        image_path = os.path.join(data_dir, sample['image'])
+        image = Image.open(image_path).convert('RGB')
+
         user_prompt = sample['conversations'][0]['value'].replace("<image>", "").strip()
-        ground_truth = json.loads(sample['conversations'][1]['value'])
+        gt_value = sample['conversations'][1]['value']
+
+        # Parse ground truth (handle both string and dict)
+        if isinstance(gt_value, str):
+            try:
+                ground_truth = json.loads(gt_value)
+            except json.JSONDecodeError:
+                ground_truth = {"raw": gt_value}
+        else:
+            ground_truth = gt_value
 
         response = run_inference(model, processor, image, user_prompt)
         prediction = parse_action(response)
@@ -244,9 +256,38 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # Load dataset
+    # Load dataset from JSON
     print(f"Loading dataset from: {args.data}")
-    dataset = load_from_disk(args.data)
+
+    # Determine the JSON file path and data directory
+    if args.data.endswith('.json'):
+        json_path = args.data
+        data_dir = os.path.dirname(args.data)
+    else:
+        data_dir = args.data
+        # Try to find validation or test JSON
+        val_json = os.path.join(args.data, "mind2web_val.json")
+        test_json = os.path.join(args.data, "mind2web_test.json")
+        train_json = os.path.join(args.data, "mind2web_train.json")
+
+        if os.path.exists(val_json):
+            json_path = val_json
+        elif os.path.exists(test_json):
+            json_path = test_json
+        elif os.path.exists(train_json):
+            print("Warning: Using train.json for evaluation (no val/test found)")
+            json_path = train_json
+        else:
+            raise FileNotFoundError(f"No JSON files found in {args.data}")
+
+    print(f"Loading from: {json_path}")
+    with open(json_path, 'r') as f:
+        data_list = json.load(f)
+
+    # Store data_dir for image loading
+    args.data_dir = data_dir
+
+    dataset = data_list
     print(f"Dataset size: {len(dataset)}")
 
     # Load processor once
@@ -261,7 +302,7 @@ def main():
 
         for ckpt in checkpoints:
             metrics, results = evaluate_checkpoint(
-                ckpt, dataset, processor, args.base_model, args.max_samples, args.use_4bit
+                ckpt, dataset, processor, args.base_model, args.max_samples, args.use_4bit, args.data_dir
             )
             all_metrics.append(metrics)
 
@@ -272,7 +313,7 @@ def main():
 
     elif args.checkpoint:
         metrics, results = evaluate_checkpoint(
-            args.checkpoint, dataset, processor, args.base_model, args.max_samples, args.use_4bit
+            args.checkpoint, dataset, processor, args.base_model, args.max_samples, args.use_4bit, args.data_dir
         )
         all_metrics.append(metrics)
 

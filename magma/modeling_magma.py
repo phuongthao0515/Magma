@@ -171,7 +171,9 @@ class MagmaPreTrainedModel(PreTrainedModel):
         Retrieve language_model's attribute to check whether the model supports
         SDPA or not.
         """
-        return self.language_model._supports_sdpa
+        if hasattr(self, 'language_model') and self.language_model is not None:
+            return getattr(self.language_model, '_supports_sdpa', False)
+        return False
 
 
 MAGMA_INPUTS_DOCSTRING = r"""
@@ -266,19 +268,14 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
         if hasattr(config.text_config, 'auto_map'):
             del config.text_config.auto_map
 
-        try:
-            self.language_model = AutoModelForCausalLM.from_config(
-                config.text_config, 
-                # attn_implementation=config._attn_implementation, 
-                trust_remote_code=True
-            )
-        except:
-            self.language_model = AutoModelForCausalLM.from_pretrained(
-                config.text_config._name_or_path, 
-                # attn_implementation=config._attn_implementation, 
-                trust_remote_code=True
-            )
-        
+        # Always create language model from config (architecture only)
+        # Weights will be loaded by the parent from_pretrained from Magma checkpoint
+        # This avoids trying to download from gated repos like meta-llama
+        self.language_model = AutoModelForCausalLM.from_config(
+            config.text_config,
+            trust_remote_code=True
+        )
+
         self.pad_token_id = self.config.pad_token_id if self.config.pad_token_id is not None else -1
         self._padding_side = "left"  # set it to left by default, user can use setter to change padding_sides
 
@@ -289,6 +286,29 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
             pass
 
         self.post_init()
+
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
+        """Override to support QLoRA 4-bit quantization loading.
+
+        When quantization_config is provided, HuggingFace will:
+        1. Instantiate the model (including language_model via from_config in __init__)
+        2. Replace all linear layers with quantized versions (recursively)
+        3. Load weights from the Magma checkpoint with quantization applied
+
+        This avoids downloading from gated repos since language_model architecture
+        is created from config, and weights come from the Magma checkpoint.
+        """
+        if kwargs.get('quantization_config') is not None:
+            print(f"[QLoRA] Loading Magma with 4-bit quantization...")
+
+        # Pass everything to parent - HuggingFace handles quantization recursively
+        model = super().from_pretrained(pretrained_model_name_or_path, *model_args, **kwargs)
+
+        if kwargs.get('quantization_config') is not None:
+            print(f"[QLoRA] Model loaded with 4-bit quantization!")
+
+        return model
     
     # def from_pretrained(self, pretrained_model_name_or_path, *model_args, **kwargs):
     #     import pdb; pdb.set_trace()
@@ -297,7 +317,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
 
     @property
     def padding_side(self):
-        return self._padding_side
+        return self._padding_sidef
 
     @padding_side.setter
     def padding_side(self, padding_side: str):
@@ -790,7 +810,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                 action_labels = shift_labels[valid_indices]
                 action_logits = shift_logits[valid_indices]
                 # calcualte the accuracy
-                action_accuracy = (action_logits.argmax(-1) == action_labels).float().mean()
+                action_accuracy = (action_logits.argmax(-1) == actiosn_labels).float().mean()
                 # log the action accuracy
             else:
                 action_accuracy = torch.tensor(0.0).to(shift_logits.device)
