@@ -147,6 +147,13 @@ class MagmaPreTrainedModel(PreTrainedModel):
     _supports_flash_attn_2 = True
 
     def _init_weights(self, module):
+        try:
+            import bitsandbytes as bnb
+            if isinstance(module, (bnb.nn.Linear4bit, bnb.nn.Linear8bitLt)):
+                return
+        except ImportError:
+            pass
+
         std = (
             self.config.initializer_range
             if hasattr(self.config, "initializer_range")
@@ -271,6 +278,11 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
         # Always create language model from config (architecture only)
         # Weights will be loaded by the parent from_pretrained from Magma checkpoint
         # This avoids trying to download from gated repos like meta-llama
+        # self.language_model = AutoModelForCausalLM.from_config(
+        #     config.text_config,
+        #     trust_remote_code=True
+        # )
+        # with torch.device('meta'):
         self.language_model = AutoModelForCausalLM.from_config(
             config.text_config,
             trust_remote_code=True
@@ -297,7 +309,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
         3. Load weights from the Magma checkpoint with quantization applied
 
         This avoids downloading from gated repos since language_model architecture
-        is created from config, and weights come from the Magma checkpoint.
+        is created from config, and weights come from the Magma checkpoint.f
         """
         if kwargs.get('quantization_config') is not None:
             print(f"[QLoRA] Loading Magma with 4-bit quantization...")
@@ -317,7 +329,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
 
     @property
     def padding_side(self):
-        return self._padding_sidef
+        return self._padding_side
 
     @padding_side.setter
     def padding_side(self, padding_side: str):
@@ -810,7 +822,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                 action_labels = shift_labels[valid_indices]
                 action_logits = shift_logits[valid_indices]
                 # calcualte the accuracy
-                action_accuracy = (action_logits.argmax(-1) == actiosn_labels).float().mean()
+                action_accuracy = (action_logits.argmax(-1) == action_labels).float().mean()
                 # log the action accuracy
             else:
                 action_accuracy = torch.tensor(0.0).to(shift_logits.device)
