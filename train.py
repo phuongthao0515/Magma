@@ -508,10 +508,16 @@ def train():
 
     if training_args.lora_enable:
         from peft import LoraConfig, get_peft_model
+        # Use explicit target modules for language model only (Llama architecture)
+        # This avoids accidentally targeting vision tower modules
+        lora_target_modules = [
+            "q_proj", "k_proj", "v_proj", "o_proj",  # attention
+            "gate_proj", "up_proj", "down_proj",      # MLP
+        ]
         lora_config = LoraConfig(
             r=training_args.lora_r,
             lora_alpha=training_args.lora_alpha,
-            target_modules=find_all_linear_names(model),
+            target_modules=lora_target_modules,
             lora_dropout=training_args.lora_dropout,
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
@@ -527,7 +533,9 @@ def train():
     if model_args.tune_mm_mlp_adapter:
         model.requires_grad_(False)
         for p in model.multi_modal_projector.parameters():
-            p.requires_grad = True
+            # Only set requires_grad for float tensors (skip quantized int8/4bit)
+            if p.dtype in [torch.float32, torch.float16, torch.bfloat16]:
+                p.requires_grad = True
 
     if training_args.freeze_mm_mlp_adapter:
         for p in model.multi_modal_projector.parameters():

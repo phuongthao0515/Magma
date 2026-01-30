@@ -120,7 +120,7 @@ class MagmaConfig(PretrainedConfig):
         **kwargs,
     ):
         self.vision_config = vision_config      
-        self.image_token_index = image_token_index
+        self.image_token_index = image_token_index if image_token_index is not None else kwargs.get('image_token_id', None)
 
         if isinstance(text_config, dict):
             text_config["model_type"] = text_config["model_type"] if "model_type" in text_config else "llama"

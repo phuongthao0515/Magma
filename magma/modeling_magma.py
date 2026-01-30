@@ -278,7 +278,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
         # Always create language model from config (architecture only)
         # Weights will be loaded by the parent from_pretrained from Magma checkpoint
         # This avoids trying to download from gated repos like meta-llama
-        # self.language_model = AutoModelForCausalLM.from_config(
+        # self.language_model = AutoModelForCausalLM.from_config
         #     config.text_config,
         #     trust_remote_code=True
         # )
@@ -606,7 +606,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                     f" the number of image given to the model is {num_images}. "
                     f"This prevents correct indexing and breaks batch generation."
                 )
-        final_embedding[image_to_overwrite] = image_features.contiguous().reshape(-1, embed_dim).to(target_device)
+        final_embedding[image_to_overwrite] = image_features.contiguous().reshape(-1, embed_dim).to(device=target_device, dtype=final_embedding.dtype)
         final_attention_mask |= image_to_overwrite
         position_ids = (final_attention_mask.cumsum(-1) - 1).masked_fill_((final_attention_mask == 0), 1)
 
@@ -826,21 +826,22 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                 # log the action accuracy
             else:
                 action_accuracy = torch.tensor(0.0).to(shift_logits.device)
-            # torch distributed gather the action accuracy across all devices     
-            action_accuracy = action_accuracy.unsqueeze(0)
-            # gather the action accuracy across all devices
-            action_accuracy_gather = [torch.zeros_like(action_accuracy) for _ in range(dist.get_world_size())]
-            dist.all_gather(action_accuracy_gather, action_accuracy)
-            # concatenate the action accuracy across all devices
-            action_accuracy = torch.cat(action_accuracy_gather)            
-            
-            if dist.get_rank() == 0:            
-                # remove zero values
-                if action_accuracy.mean() == 0:
-                    wandb.log({"action_accuracy": action_accuracy.mean().item()})
-                else:
-                    action_accuracy = action_accuracy[action_accuracy != 0]
-                    wandb.log({"action_accuracy": action_accuracy.mean().item()})
+            # torch distributed gather the action accuracy across all devices
+            if dist.is_initialized():
+                action_accuracy = action_accuracy.unsqueeze(0)
+                # gather the action accuracy across all devices
+                action_accuracy_gather = [torch.zeros_like(action_accuracy) for _ in range(dist.get_world_size())]
+                dist.all_gather(action_accuracy_gather, action_accuracy)
+                # concatenate the action accuracy across all devices
+                action_accuracy = torch.cat(action_accuracy_gather)
+
+                if dist.get_rank() == 0:
+                    # remove zero values
+                    if action_accuracy.mean() == 0:
+                        wandb.log({"action_accuracy": action_accuracy.mean().item()})
+                    else:
+                        action_accuracy = action_accuracy[action_accuracy != 0]
+                        wandb.log({"action_accuracy": action_accuracy.mean().item()})
         else:
             logits = self.language_model.lm_head(hidden_states)
             logits = logits.float()
@@ -1188,7 +1189,7 @@ class MagmaForConditionalGeneration(MagmaPreTrainedModel):
                     f" the number of image given to the model is {num_images}. "
                     f"This prevents correct indexing and breaks batch generation."
                 )
-        final_embedding[image_to_overwrite] = image_features.contiguous().reshape(-1, embed_dim).to(target_device)
+        final_embedding[image_to_overwrite] = image_features.contiguous().reshape(-1, embed_dim).to(device=target_device, dtype=final_embedding.dtype)
         final_attention_mask |= image_to_overwrite
         position_ids = (final_attention_mask.cumsum(-1) - 1).masked_fill_((final_attention_mask == 0), 1)
 
