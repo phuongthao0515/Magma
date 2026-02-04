@@ -24,9 +24,9 @@ from typing import Dict, Optional, Sequence, List
 import torch
 try:
     import deepspeed
-except ImportError:
+except Exception:
     deepspeed = None
-    print("DeepSpeed not installed. Single GPU training will work without it.")
+    print("DeepSpeed not available. Single GPU training will work without it.")
 import glob
 import transformers
 import tokenizers
@@ -144,8 +144,11 @@ class TrainingArguments(transformers.TrainingArguments):
     
 
 def maybe_zero_3(param, ignore_status=False, name=None):
-    from deepspeed import zero
-    from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
+    try:
+        from deepspeed import zero
+        from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
+    except Exception:
+        return param.detach().cpu().clone()
     if hasattr(param, "ds_id"):
         if param.ds_status == ZeroParamStatus.NOT_AVAILABLE:
             if not ignore_status:
@@ -529,9 +532,15 @@ def train():
                 model.to(torch.float16)
         rank0_print("Adding LoRA adapters...")
         model = get_peft_model(model, lora_config)
-    
+        # Re-enable input require grads after PEFT wrapping for gradient checkpointing
+        if training_args.gradient_checkpointing:
+            model.enable_input_require_grads()
+
     if model_args.tune_mm_mlp_adapter:
-        model.requires_grad_(False)
+        # Only freeze all params if LoRA is NOT enabled.
+        # With LoRA, PEFT already froze the base model and enabled LoRA adapters.
+        if not training_args.lora_enable:
+            model.requires_grad_(False)
         for p in model.multi_modal_projector.parameters():
             # Only set requires_grad for float tensors (skip quantized int8/4bit)
             if p.dtype in [torch.float32, torch.float16, torch.bfloat16]:
@@ -547,6 +556,11 @@ def train():
 
     total_params = get_model_param_count(model, trainable_only=True)
     rank0_print(f"Total trainable parameters: {total_params}")
+    # Debug: show breakdown of trainable params
+    lora_trainable = sum(p.numel() for n, p in model.named_parameters() if p.requires_grad and 'lora' in n)
+    projector_trainable = sum(p.numel() for n, p in model.named_parameters() if p.requires_grad and 'multi_modal_projector' in n)
+    rank0_print(f"[DEBUG] LoRA trainable: {lora_trainable:,}, Projector trainable: {projector_trainable:,}")
+    rank0_print(f"[DEBUG] model.training: {model.training}")
     
     if training_args.bits in [4, 8]:
         model.multi_modal_projector.to(dtype=compute_dtype, device=training_args.device)

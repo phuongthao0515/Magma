@@ -359,8 +359,12 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
         return self.language_model.tie_weights()
 
     def load_special_module_from_ckpt(self, ckpt_path, torch_dtype=None):
-        from deepspeed.runtime.zero import Init
-        from deepspeed import zero
+        try:
+            from deepspeed.runtime.zero import Init
+            from deepspeed import zero
+        except Exception:
+            Init = None
+            zero = None
         # Defer initialization for ZeRO-3 compatibility
         # with Init(data_parallel_group=None):
         #     # Initialize the special module
@@ -808,13 +812,23 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
 
         if labels is not None and self.training:
             valid_mask = labels[..., 1:] != -100
+            if not hasattr(self, '_debug_logged'):
+                print(f"[DEBUG forward] labels shape: {labels.shape}, valid tokens: {valid_mask.sum().item()}, self.training: {self.training}")
+                self._debug_logged = True
             shift_logits = self.language_model.lm_head(hidden_states[:,:-1][valid_mask]).contiguous()
             shift_logits = shift_logits.view(-1, self.language_model.config.vocab_size)
+            shift_logits = shift_logits.float()  # Cast to float32 to avoid bf16 overflow in softmax
             logits = shift_logits # dummy logits
             shift_labels = labels[..., 1:][valid_mask].contiguous()
             shift_labels = shift_labels.to(shift_logits.device)
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(shift_logits, shift_labels)
+            if not hasattr(self, '_debug_loss_logged'):
+                print(f"[DEBUG forward] loss: {loss.item()}, shift_logits shape: {shift_logits.shape}, requires_grad: {loss.requires_grad}")
+                print(f"[DEBUG forward] hidden_states has NaN: {torch.isnan(hidden_states).any().item()}, dtype: {hidden_states.dtype}")
+                print(f"[DEBUG forward] shift_logits has NaN: {torch.isnan(shift_logits).any().item()}, min: {shift_logits.min().item()}, max: {shift_logits.max().item()}")
+                print(f"[DEBUG forward] lm_head weight dtype: {self.language_model.lm_head.weight.dtype}")
+                self._debug_loss_logged = True
 
             # localize the positions for shift_labels where the id is in betweek [config.tokenizer_vocab_size-256, config.tokenizer_vocab_size]
             valid_indices = (shift_labels<self.config.tokenizer_vocab_size) & (shift_labels>=self.config.tokenizer_vocab_size-256)

@@ -4,6 +4,9 @@
 # Memory optimization
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
+# W&B logging
+export WANDB_PROJECT=magma-mind2web
+
 python train.py \
     --model_name_or_path ./models/Magma-8B \
     --data_path "data_configs/mind2web.yaml" \
@@ -22,4 +25,4 @@ python train.py \
     --lora_r 64 \
     --lora_alpha 16 \
     --tune_mm_mlp_adapter True \
-    --report_to none
+    --report_to wandb
