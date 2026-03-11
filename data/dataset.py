@@ -1,34 +1,17 @@
 import os
 import copy
-from dataclasses import dataclass, field
 import json
 import logging
-import pathlib
-from typing import Dict, Optional, Sequence, List
-import pandas as pd
+from typing import Dict, Sequence, List
 import torch
-import deepspeed
-import glob
-import pandas as pd
-import transformers
-import tokenizers
-import random
-import re
-import cv2
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data import DataLoader, Dataset, DistributedSampler, IterableDataset
-import torch.distributed as dist
 import collections
-from PIL import Image
-from io import BytesIO
+from torch.utils.data import Dataset
+from PIL import Image, ImageFile
 from data.utils.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from magma.image_processing_magma import MagmaImageProcessor
 from magma.processing_magma import MagmaProcessor
 from .data_item import DataItem
 from . import *
-from PIL import Image, ImageFile
-from PIL import ImageDraw, ImageFont
-from typing import List, Optional, Union
 
 def preprocess_multimodal(
     sources: Sequence[str],
@@ -252,54 +235,7 @@ class LazySupervisedDataset(Dataset):
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         item = copy.deepcopy(self.data_items[i])
-        if 'video' in item and item['video'][0] is not None:
-            assert item['image_folder'] is not None or self.data_args.image_folder is not None, "image_folder is not provided"
-            image_folder = self.data_args.image_folder if self.data_args.image_folder is not None else item['image_folder']
-            if item['dataset_tag'] in ['sthv2', 'ego4d', 'exoego4d']:
-                visual_trace_path = os.path.join(image_folder, item['trace'])
-                if os.path.exists(visual_trace_path):
-                    try:
-                        visual_traces = torch.load(visual_trace_path, map_location='cpu')
-                        video_path = os.path.join(image_folder, item['video'].replace('/home/tanreuben/vlp_datasets/', ''))
-                        item.update(visual_traces)
-                    except Exception as e:
-                        print(f"Error loading: {visual_trace_path}")
-                        visual_traces = None
-                        video_path = None
-                else:                
-                    print(f"Error: {visual_trace_path} not found")    
-                    visual_traces = None       
-                    video_path = None
-                item = self.conv_constructor[item['dataset_tag']](item=item, video_path=video_path, visual_traces=visual_traces)                                              
-            else:
-                item['video'][0] = item['video'][0].replace('/mnt/data/video_datasets_visual_traces/YouCook2/', '')
-                video_path = os.path.join(image_folder, item['video'][0])
-                frame_start, frame_end = item['frame_interval'][0].item(), item['frame_interval'][1].item()
-                video_name = os.path.basename(video_path).split('.')[0]
-                if 'youcook2' in video_path.lower():
-                    visual_trace_path = os.path.join(image_folder, 'all_detected_visual_traces_30fps', f'{video_name}_trace_{frame_start:09d}_{frame_end:09d}.pth')
-                else:
-                    visual_trace_path = os.path.join(image_folder, 'visual_trace' if 'epic' in image_folder else 'visual_traces', video_name, f'trace_{frame_start:09d}_{frame_end:09d}.pth')
-                if os.path.exists(visual_trace_path):
-                    visual_traces = torch.load(visual_trace_path, map_location='cpu')
-                else:
-                    visual_traces = None
-                item = self.conv_constructor[item['dataset_tag']](item=item, video_path=video_path, visual_traces=visual_traces)    
-            image = item['image']
-            num_crops = item['num_crops']
-            # if image is not a PIL image
-            if image is None:  
-                base_img_size = self.processor.image_processor.base_img_size
-                image = Image.new('RGB', (base_img_size, base_img_size), (0, 0, 0))
-                item['image'] = image
-                num_crops = 1
-            image_pt = self.processor.image_processor(image, num_crops=num_crops, return_tensors='pt')
-            images = collections.defaultdict(list)
-            for key, val in image_pt.items():
-                images[key].append(val)
-            texts = [item["conversations"]]
-        elif 'image' in item and item['image'] is not None:
-            import pdb; pdb.set_trace()
+        if 'image' in item and item['image'] is not None:
             # cope with multiple images
             image_folder = item['image_folder']
             image_files = item['image']
@@ -395,74 +331,6 @@ class LazySupervisedDataset(Dataset):
         return data_dict
 
 
-# Custom wrapper to combine Dataset and IterableDataset without loading IterableDataset in memory
-class CombinedDataset(Dataset):
-    def __init__(self, dataset, iterable_dataset, local_run=False, seed=7):
-        self.dataset_len = []
-        if dataset is not None:
-            self.dataset_len.append(len(dataset)) # Length of the Dataset   
-            if dist.is_initialized():
-                sampler = DistributedSampler(
-                    dataset, 
-                    num_replicas=dist.get_world_size(),
-                    rank=dist.get_rank(),
-                    shuffle=True,
-                    seed=seed,
-                    drop_last=False,
-                )
-            else:
-                sampler = None            
-            self.iterable_dataset_a = DataLoader(dataset, batch_size=1, sampler=sampler, num_workers=0 if local_run else 8, pin_memory=False)  # DataLoader for the Dataset
-            self.iterable_iter_a = iter(self.iterable_dataset_a)
-        else:
-            self.iterable_dataset_a = None
-            self.iterable_iter_a = None
-            self.dataset_len.append(0)
-
-        if iterable_dataset is not None:  
-            self.dataset_len.append(len(iterable_dataset)) # Length of the IterableDataset   
-            self.iterable_dataset_b = iterable_dataset
-            self.iterable_iter_b = iter(self.iterable_dataset_b)  # Iterator for the IterableDataset
-        else:
-            self.iterable_dataset_b = None
-            self.iterable_iter_b = None
-            self.dataset_len.append(0)        
-        self.sampling_ratios = [float(item)/sum(self.dataset_len) for item in self.dataset_len]
-        print(f"total training data size: {sum(self.dataset_len)}")
-        print(f"sampling ratios: {self.sampling_ratios}")
-
-    def __len__(self):
-        # Length can be the maximum of both or some other logic
-        return sum(self.dataset_len)
-    
-    def __getitem__(self, index):
-        # according to the sampling ratio, choose which dataset to sample
-        dataset_choice = random.choices([0, 1], self.sampling_ratios)[0]
-        if dataset_choice == 0:
-            # Fetch a sample from the IterableDataset using its iterator
-            try:
-                iterable_sample_a = next(self.iterable_iter_a)
-            except StopIteration:
-                # Reinitialize the iterator if it exhausts
-                self.iterable_iter_a = iter(self.iterable_dataset_a)
-                iterable_sample_a = next(self.iterable_iter_a)
-            iterable_sample_a['input_ids'] = iterable_sample_a['input_ids'][0]
-            iterable_sample_a['labels'] = iterable_sample_a['labels'][0]
-            iterable_sample_a['pixel_values'] = [item[0] for item in  iterable_sample_a['pixel_values']]
-            iterable_sample_a['image_sizes'] = [item[0] for item in  iterable_sample_a['image_sizes']]
-            return iterable_sample_a
-        else:
-            # Fetch a sample from the IterableDataset using its iterator
-            try:
-                iterable_sample_b = next(self.iterable_iter_b)
-            except StopIteration:
-                # Reinitialize the iterator if it exhausts
-                self.iterable_iter_b = iter(self.iterable_dataset_b)
-                iterable_sample_b = next(self.iterable_iter_b)
-            # print(f"oxe-rank-{rank}: {iterable_sample_b['dataset_name']}")
-            # Return a combined sample (modify based on your requirement)
-            return iterable_sample_b
-
 def build_joint_dataset(
         data_path: str,
         processor: MagmaProcessor,
@@ -471,19 +339,5 @@ def build_joint_dataset(
     ) -> torch.utils.data.ConcatDataset:
 
     data_items, dataset_names, dataset_folders = DataItem(training_size=data_args.training_size, local_run=data_args.local_run)(data_path, processor, None, is_eval=is_eval)
-    # pop out open-x dataset
-    openx_dataset = None
-    if 'openx' in data_items:
-        openx_dataset = data_items.pop('openx')
-        _ = dataset_folders.pop(dataset_names.index('openx'))
-        _ = dataset_names.pop(dataset_names.index('openx'))
-
-        lazy_dataset = None
-        if len(data_items) > 0:
-            lazy_dataset = LazySupervisedDataset(processor, data_items, dataset_names, dataset_folders, data_args)
-
-        # concatenate openx dataset and lazy_dataset
-        return CombinedDataset(lazy_dataset, openx_dataset, local_run=data_args.local_run)
-    else:
-        return LazySupervisedDataset(processor, data_items, dataset_names, dataset_folders, data_args)
+    return LazySupervisedDataset(processor, data_items, dataset_names, dataset_folders, data_args)
 
