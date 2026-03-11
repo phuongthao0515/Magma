@@ -175,7 +175,7 @@ class LazySupervisedDataset(Dataset):
             for dataset_name, dataset_folder in zip(dataset_names, dataset_folders):
                 if dataset_name in ['sharegpt4v', 'aitw', 'mind2web']:
                     self.data_items.extend(data_items[dataset_name])
-                elif dataset_name in ['seeclick', 'vision2ui', 'seeclick_ocr']:
+                elif dataset_name in ['seeclick', 'seeclick_ocr']:
                     self.conv_constructor[dataset_name] = eval(dataset_name)(
                         mm_use_trace_start_end=data_args.mm_use_trace_start_end,
                         mm_use_trace_speed=data_args.mm_use_trace_speed,
@@ -273,9 +273,6 @@ class LazySupervisedDataset(Dataset):
                     else:
                         # regular image sft dataset
                         image = Image.open(image_path).convert('RGB')           
-                        # if item['dataset_tag'] in ['seeclick', 'vision2ui']:
-                        #     image = self.processor.image_processor(image, num_crops=9, return_tensors='pt')
-                        # else:                   
                         image = self.processor.image_processor(image, return_tensors='pt')
                     for key, val in image.items():
                         images[key].append(val)

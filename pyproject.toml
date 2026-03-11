@@ -37,12 +37,8 @@ dependencies = [
     "einops==0.6.1",
     "einops-exts==0.0.4",
     "timm==0.9.12",
-    "tensorflow==2.15.0",
-    "tensorflow_datasets==4.9.3",
-    "tensorflow_graphics==2021.12.3",    
-    "draccus",    
-    "numba", 
-    "dlimp @ git+https://github.com/moojink/dlimp_openvla",
+    "draccus",
+    "numba",
     "loguru", 
     "sacrebleu", 
     "evaluate", 
@@ -72,7 +68,6 @@ eval = [
     "word2number",
 ]
 agent = [
-    "pygame",
     "easyocr",
     "paddleocr",
     "common==0.1.2",
@@ -83,12 +78,6 @@ agent = [
     "paddlepaddle==2.6.2",
     "supervision==0.18.0",
     "ultralytics==8.3.78", 
-]
-server = [
-    "fastapi",
-    "uvicorn",
-    "python-multipart",
-    "pillow"
 ]
 
 [tool.setuptools.packages.find]
