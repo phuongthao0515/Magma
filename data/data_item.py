@@ -24,8 +24,6 @@ class DataItem:
             return "seeclick"
         elif 'mind2web' in data_path.lower():
             return "mind2web"
-        elif 'vision2ui' in data_path.lower():
-            return "vision2ui"
         elif 'llava' in data_path.lower():
             return "llava"
         elif 'magma' in data_path.lower():
