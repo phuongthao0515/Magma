@@ -1,0 +1,8 @@
+deepspeed
+faiss
+open_clip_torch
+kmeans_pytorch
+decord
+draccus
+git+https://github.com/facebookresearch/co-tracker.git
+pip install git+https://github.com/huggingface/transformers.git
