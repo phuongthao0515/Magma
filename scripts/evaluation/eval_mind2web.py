@@ -22,50 +22,47 @@ import argparse
 import glob
 import torch
 from tqdm import tqdm
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from datasets import Dataset
 from peft import PeftModel
-from transformers import BitsAndBytesConfig
-
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
-
-from magma.processing_magma import MagmaProcessor
-from magma.modeling_magma import MagmaForCausalLM
+from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
 
 
 def load_model(checkpoint_path: str, base_model: str = "microsoft/Magma-8B", use_4bit: bool = True):
-    """Load fine-tuned model with LoRA adapters."""
+    """Load base model + optional LoRA adapters."""
     print(f"Loading base model: {base_model}")
+
+    dtype = torch.bfloat16
 
     if use_4bit:
         quantization_config = BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_compute_dtype=dtype,
             bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4"
         )
-        model = MagmaForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             base_model,
             trust_remote_code=True,
+            torch_dtype=dtype,
             device_map={"": 0},
             quantization_config=quantization_config
         )
     else:
-        model = MagmaForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             base_model,
             trust_remote_code=True,
-            torch_dtype=torch.bfloat16
+            torch_dtype=dtype
         )
         model.to("cuda")
 
-    processor = MagmaProcessor.from_pretrained(base_model, trust_remote_code=True)
+    processor = AutoProcessor.from_pretrained(base_model, trust_remote_code=True)
 
-    # Load LoRA adapters
-    if checkpoint_path and os.path.exists(checkpoint_path):
-        print(f"Loading LoRA adapters from: {checkpoint_path}")
-        model = PeftModel.from_pretrained(model, checkpoint_path)
-        print("LoRA adapters loaded!")
+    # Load LoRA adapters (commented out to test raw base model baseline)
+    # if checkpoint_path and os.path.exists(checkpoint_path):
+    #     print(f"Loading LoRA adapters from: {checkpoint_path}")
+    #     model = PeftModel.from_pretrained(model, checkpoint_path)
+    #     print("LoRA adapters loaded!")
 
     model.eval()
     return model, processor
@@ -75,16 +72,22 @@ def run_inference(model, processor, image: Image.Image, prompt: str) -> str:
     """Run inference on a single sample."""
     convs = [
         {"role": "system", "content": "You are agent that can see, talk and act."},
-        {"role": "user", "content": f"<image_start><image><image_end>\n{prompt}"},
+        {"role": "user", "content": f"<image>\n{prompt}"},
     ]
 
     prompt_text = processor.tokenizer.apply_chat_template(
         convs, tokenize=False, add_generation_prompt=True
     )
+
+    # Check for image start/end tokens (required by some Magma configs)
+    if hasattr(model, 'config') and getattr(model.config, 'mm_use_image_start_end', False):
+        prompt_text = prompt_text.replace('<image>', '<image_start><image><image_end>')
+
     inputs = processor(images=[image], texts=prompt_text, return_tensors="pt")
     inputs['pixel_values'] = inputs['pixel_values'].unsqueeze(0)
     inputs['image_sizes'] = inputs['image_sizes'].unsqueeze(0)
-    inputs = inputs.to("cuda").to(model.dtype if hasattr(model, 'dtype') else torch.float16)
+    # Match official Magma demo: cast to bfloat16 then move to device
+    inputs = inputs.to(torch.bfloat16).to("cuda")
 
     generation_args = {
         "max_new_tokens": 256,
@@ -94,6 +97,7 @@ def run_inference(model, processor, image: Image.Image, prompt: str) -> str:
         "num_beams": 1,
     }
 
+    model.generation_config.pad_token_id = processor.tokenizer.pad_token_id
     with torch.inference_mode():
         generate_ids = model.generate(**inputs, **generation_args)
 
@@ -116,6 +120,69 @@ def parse_action(response: str) -> dict:
             except:
                 pass
         return {"raw_response": response, "parse_error": True}
+
+
+def annotate_image(image: Image.Image, sample_id: str, ground_truth: dict,
+                    prediction: dict, raw_response: str) -> Image.Image:
+    """Annotate the image with prediction vs ground truth info for debugging.
+
+    Draws a banner at the top showing GT, prediction, raw response, and
+    a CORRECT/WRONG/PARSE_ERROR status indicator.
+    """
+    img = image.copy()
+    img_w, img_h = img.size
+
+    # Determine correctness
+    is_parse_error = prediction.get('parse_error', False)
+    if is_parse_error:
+        status = "PARSE_ERROR"
+        status_color = (200, 100, 0)  # orange
+    else:
+        action_match = prediction.get('ACTION') == ground_truth.get('ACTION')
+        element_match = str(prediction.get('MARK')) == str(ground_truth.get('MARK'))
+        value_match = True
+        if ground_truth.get('ACTION') == 'TYPE':
+            value_match = prediction.get('VALUE') == ground_truth.get('VALUE')
+        is_correct = action_match and element_match and (ground_truth.get('ACTION') != 'TYPE' or value_match)
+        status = "CORRECT" if is_correct else "WRONG"
+        status_color = (0, 150, 0) if is_correct else (200, 0, 0)
+
+    # Build text lines
+    gt_text = f"GT:   {json.dumps(ground_truth)}"
+    pred_text = f"PRED: {json.dumps(prediction)}" if not is_parse_error else f"PRED: [parse error]"
+    raw_text = f"RAW:  {raw_response[:120]}{'...' if len(raw_response) > 120 else ''}"
+    id_text = f"[{sample_id}]  {status}"
+
+    lines = [id_text, gt_text, pred_text, raw_text]
+
+    # Try to load a font, fall back to default
+    font_path = os.path.join(os.path.dirname(__file__), '../../agents/ui_agent/util/arial.ttf')
+    font_size = max(14, min(20, img_w // 60))
+    try:
+        font = ImageFont.truetype(font_path, font_size)
+    except (IOError, OSError):
+        font = ImageFont.load_default()
+
+    # Calculate banner height
+    line_height = font_size + 4
+    banner_h = line_height * len(lines) + 12  # padding
+
+    # Create new image with banner
+    new_img = Image.new('RGB', (img_w, img_h + banner_h), color=(255, 255, 255))
+    new_img.paste(img, (0, banner_h))
+
+    draw = ImageDraw.Draw(new_img)
+    # Draw status bar background
+    draw.rectangle([0, 0, img_w, line_height + 6], fill=status_color)
+
+    # Draw text lines
+    y = 4
+    for i, line in enumerate(lines):
+        text_color = (255, 255, 255) if i == 0 else (0, 0, 0)
+        draw.text((8, y), line, fill=text_color, font=font)
+        y += line_height
+
+    return new_img
 
 
 def compute_metrics(results: list) -> dict:
@@ -172,7 +239,8 @@ def compute_metrics(results: list) -> dict:
 
 
 def evaluate_checkpoint(checkpoint_path: str, dataset, processor, base_model: str,
-                        max_samples: int = None, use_4bit: bool = True, data_dir: str = None) -> dict:
+                        max_samples: int = None, use_4bit: bool = True, data_dir: str = None,
+                        save_images: bool = False, image_output_dir: str = None) -> dict:
     """Evaluate a single checkpoint."""
     print(f"\n{'='*60}")
     print(f"Evaluating: {checkpoint_path}")
@@ -186,9 +254,17 @@ def evaluate_checkpoint(checkpoint_path: str, dataset, processor, base_model: st
     if max_samples:
         samples = dataset[:min(max_samples, len(dataset))]
 
+    # Setup image output directory
+    ckpt_image_dir = None
+    if save_images and image_output_dir:
+        ckpt_name = os.path.basename(checkpoint_path)
+        ckpt_image_dir = os.path.join(image_output_dir, ckpt_name)
+        os.makedirs(ckpt_image_dir, exist_ok=True)
+        print(f"Saving annotated images to: {ckpt_image_dir}")
+
     # Run inference
     results = []
-    for sample in tqdm(samples, desc="Evaluating"):
+    for idx, sample in enumerate(tqdm(samples, desc="Evaluating")):
         # Load image from path
         image_path = os.path.join(data_dir, sample['image'])
         image = Image.open(image_path).convert('RGB')
@@ -214,6 +290,24 @@ def evaluate_checkpoint(checkpoint_path: str, dataset, processor, base_model: st
             "prediction": prediction,
             "raw_response": response
         })
+
+        # Save annotated image
+        if ckpt_image_dir:
+            annotated = annotate_image(image, sample['id'], ground_truth, prediction, response)
+            # Determine correctness for filename prefix
+            is_parse_error = prediction.get('parse_error', False)
+            if is_parse_error:
+                prefix = "ERR"
+            else:
+                action_match = prediction.get('ACTION') == ground_truth.get('ACTION')
+                element_match = str(prediction.get('MARK')) == str(ground_truth.get('MARK'))
+                value_match = True
+                if ground_truth.get('ACTION') == 'TYPE':
+                    value_match = prediction.get('VALUE') == ground_truth.get('VALUE')
+                is_correct = action_match and element_match and (ground_truth.get('ACTION') != 'TYPE' or value_match)
+                prefix = "OK" if is_correct else "FAIL"
+            filename = f"{idx:04d}_{prefix}_{sample['id']}.png"
+            annotated.save(os.path.join(ckpt_image_dir, filename))
 
     # Compute metrics
     metrics = compute_metrics(results)
@@ -246,12 +340,14 @@ def main():
                         help="Base model name")
     parser.add_argument("--data", type=str, default="datasets/mind2web",
                         help="Path to Mind2Web dataset")
-    parser.add_argument("--output_dir", type=str, default="results/mind2web_eval",
+    parser.add_argument("--output_dir", type=str, default="results/mind2web_eval_raw",
                         help="Output directory for results")
     parser.add_argument("--max_samples", type=int, default=None,
                         help="Max samples to evaluate")
     parser.add_argument("--use_4bit", action="store_true", default=True,
                         help="Use 4-bit quantization")
+    parser.add_argument("--save_images", action="store_true", default=False,
+                        help="Save annotated images with prediction vs ground truth for debugging")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -291,7 +387,7 @@ def main():
     print(f"Dataset size: {len(dataset)}")
 
     # Load processor once
-    processor = MagmaProcessor.from_pretrained(args.base_model, trust_remote_code=True)
+    processor = AutoProcessor.from_pretrained(args.base_model, trust_remote_code=True)
 
     all_metrics = []
 
@@ -302,7 +398,8 @@ def main():
 
         for ckpt in checkpoints:
             metrics, results = evaluate_checkpoint(
-                ckpt, dataset, processor, args.base_model, args.max_samples, args.use_4bit, args.data_dir
+                ckpt, dataset, processor, args.base_model, args.max_samples, args.use_4bit, args.data_dir,
+                save_images=args.save_images, image_output_dir=os.path.join(args.output_dir, "images")
             )
             all_metrics.append(metrics)
 
@@ -313,7 +410,8 @@ def main():
 
     elif args.checkpoint:
         metrics, results = evaluate_checkpoint(
-            args.checkpoint, dataset, processor, args.base_model, args.max_samples, args.use_4bit, args.data_dir
+            args.checkpoint, dataset, processor, args.base_model, args.max_samples, args.use_4bit, args.data_dir,
+            save_images=args.save_images, image_output_dir=os.path.join(args.output_dir, "images")
         )
         all_metrics.append(metrics)
 
