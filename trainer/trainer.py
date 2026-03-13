@@ -1,5 +1,7 @@
 import os
 import torch
+import torch.nn as nn
+import numpy as np
 
 from torch.utils.data import Sampler
 from torch.cuda import synchronize

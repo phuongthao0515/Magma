@@ -8,8 +8,6 @@ import yaml
 from PIL import Image
 from data.utils.visual_trace import visual_trace
 from data.utils.som_tom import som_prompting, tom_prompting
-import torchvision.io as tv_io
-import torchvision
 import time
 import random
 from decord import VideoReader, cpu
@@ -96,37 +94,11 @@ class Constructor():
         """
         image_placeholder = ''.join([self.image_placeholder]*num_image_tokens)
         # model task 1: ask model to briefly describe the current image - understand the present
-        if item['dataset_tag'] in ['ego4d', 'sthv2']:
-            conv_user = (
-                f'{image_placeholder}\nWhat is the person doing in the image?\n'
-            )                 
-            conv_gpt = gpt_response + '\n'
-            
-            gpt_response_todo = gpt_response
-
-        elif item['dataset_tag'] == 'human_instruction':
-            # for human instruction, it is narration
-            conv_user = (
-                f'{image_placeholder}\nThe person is doing some task in the image. Guess what is the person saying?\n'
-            )                 
-            conv_gpt = gpt_response + '\n'
-
-            gpt_response_todo = gpt_response
-
-        elif item['dataset_tag'] in ['epic']:
-            gpt_response_see = gpt_response.split('What the person should do next')[0].replace('#','').replace('*','').replace('What I see:', '').strip()
-            conv_user = (
-                f'{image_placeholder}\nWhat do you see in the image?\n'
-            )
-            conv_gpt = gpt_response_see + '\n'
-            gpt_response_todo = gpt_response.split('What the person should do next')[1].replace('#','').replace('*', '').replace(':','').strip()
-        elif item['dataset_tag'] in ['openx_magma']:
-            conv_user = (
-                f'{image_placeholder}\nWhat is the robot doing in the image?\n'
-            )                 
-            conv_gpt = gpt_response + '\n'
-            
-            gpt_response_todo = gpt_response
+        conv_user = (
+            f'{image_placeholder}\nWhat is happening in the image?\n'
+        )
+        conv_gpt = gpt_response + '\n'
+        gpt_response_todo = gpt_response
 
         return conv_user, conv_gpt, gpt_response_todo
 
@@ -172,11 +144,6 @@ class Constructor():
         
         conv_gpt = ". ".join(marks_pos) + '\n'
         return conv_user, conv_gpt, image
-
-    def _construct_conv_tom(self, item, video_path, visual_traces):
-        """
-        Construct conversations for spatial-temporal prediction
-        """
 
     def _construct_conv(self, item, video_path, visual_traces):        
 
@@ -295,8 +262,6 @@ class Constructor():
         pred_tracks_length = self.trace.visual_trace_length(pred_tracks, pred_visibility, (1, 1)).squeeze(0)
         # if 80% of the pred_tracks_length is larger than 2, then there is camera motion
         camera_motion = (pred_tracks_length > 1).sum() > 0.8*pred_tracks_length.size(0)
-        camera_motion = True if item['dataset_tag'] in ['ego4d', 'epic', 'exoego4d'] else camera_motion
-        
         start_pos = pred_tracks[:, 0][0]
         reference_pts_np = start_pos.cpu().numpy().reshape(-1, 2)
 
@@ -514,7 +479,6 @@ class Constructor():
                 item['conversations'].append({'from': 'gpt', 'value': conv_gpt})     
                 item['image'].append(image)
             
-            import pdb; pdb.set_trace()
             return item
         
 
@@ -567,55 +531,3 @@ class Constructor():
             print(f"Failed to read frames from video {video_path}")
             return None   
 
-    def _construct_caption(self, item, video_path, visual_traces):
-        """
-        v4->v5: add trace of mark
-        """        
-        if video_path is None and visual_traces is None:
-            dummy_conversations = []
-            dummy_conversations.append({'from': 'human', 'value': f"{self.image_placeholder}\nWhat is in this image?"})
-            dummy_conversations.append({'from': 'gpt', 'value': "This is a blank image."})            
-            item['conversations'] = dummy_conversations
-            item['image'] = None  
-            return item
-        
-        if 'image_size' not in item:
-            assert '(height,width)' in item, f"image_size not in item and (height,width) not in item"
-            item['image_size'] = item['(height,width)'][::-1]            
-        
-        if isinstance(item['image_size'][0], torch.Tensor):
-            width, height = item['image_size'][0].item(), item['image_size'][1].item()
-            frame_start, frame_end = item['frame_interval'][0].item(), item['frame_interval'][1].item()
-            task_description = item['global_instructions'][0]
-            gpt_response = item['gpt_response'][0]
-        else:
-            width, height = item['image_size']
-            frame_start, frame_end = item['frame_interval']     
-            task_description = item['global_instructions']
-            gpt_response = item['gpt_response']
-        
-        gpt_response = self._process_gpt_response(gpt_response, task_description)
-
-        item['image'] = self._get_frames(video_path, frame_start, frame_end, (width, height))
-        
-        if item['image'] is not None:
-            image_placeholder = ''.join([self.image_placeholder] * len(item['image']))
-            conv_user = (
-                f'{image_placeholder}\nWhat do you see in the first image? And what will the person do next?\n'
-            )
-            conv_gpt = gpt_response + '\n'
-            item['conversations'] = [
-                {'from': 'human', 'value': conv_user},
-                {'from': 'gpt', 'value': conv_gpt}                
-            ]
-        else:
-            image_placeholder = ''.join([self.image_placeholder])
-            conv_user = (
-                f'{image_placeholder}\nWhat is in this image?\n'
-            )
-            conv_gpt = "This is a blank image.\n"
-            item['conversations'] = [
-                {'from': 'human', 'value': conv_user},
-                {'from': 'gpt', 'value': conv_gpt}                
-            ]      
-        return item

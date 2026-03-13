@@ -167,4 +167,13 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Data and model artifacts
+datasets/
+dataset/
+checkpoints/
+models/
+weights/
+results/
+wandb/
 agents/ui_agent/weights
+Miniconda3-*.sh
