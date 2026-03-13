@@ -22,7 +22,6 @@ import logging
 import pathlib
 from typing import Dict, Optional, Sequence, List
 import torch
-import deepspeed
 import glob
 import transformers
 import tokenizers
@@ -139,22 +138,7 @@ class TrainingArguments(transformers.TrainingArguments):
     max_grad_norm: float = 1.0
     
 
-def maybe_zero_3(param, ignore_status=False, name=None):
-    from deepspeed import zero
-    from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
-    if hasattr(param, "ds_id"):
-        if param.ds_status == ZeroParamStatus.NOT_AVAILABLE:
-            if not ignore_status:
-                logging.warning(f"{name}: param.ds_status != ZeroParamStatus.NOT_AVAILABLE: {param.ds_status}")
-        with zero.GatheredParameters([param]):
-            param = param.data.detach().cpu().clone()
-    else:
-        param = param.detach().cpu().clone()
-    return param
-
-
-# Borrowed from peft.utils.get_peft_model_state_dict
-def get_peft_state_maybe_zero_3(named_params, bias):
+def get_peft_state(named_params, bias):
     if bias == "none":
         to_return = {k: t for k, t in named_params if "lora_" in k}
     elif bias == "all":
@@ -170,26 +154,26 @@ def get_peft_state_maybe_zero_3(named_params, bias):
                 lora_bias_names.add(bias_name)
             elif "bias" in k:
                 maybe_lora_bias[k] = t
-        for k, t in maybe_lora_bias:
-            if bias_name in lora_bias_names:
-                to_return[bias_name] = t
+        for k, t in maybe_lora_bias.items():
+            if k in lora_bias_names:
+                to_return[k] = t
     else:
         raise NotImplementedError
-    to_return = {k: maybe_zero_3(v, ignore_status=True) for k, v in to_return.items()}
+    to_return = {k: v.detach().cpu().clone() for k, v in to_return.items()}
     return to_return
 
 
-def get_peft_state_non_lora_maybe_zero_3(named_params, require_grad_only=True):
+def get_peft_state_non_lora(named_params, require_grad_only=True):
     to_return = {k: t for k, t in named_params if "lora_" not in k}
     if require_grad_only:
         to_return = {k: t for k, t in to_return.items() if t.requires_grad}
-    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
+    to_return = {k: v.detach().cpu().clone() for k, v in to_return.items()}
     return to_return
 
 
-def get_mm_adapter_state_maybe_zero_3(named_params, keys_to_match):
+def get_mm_adapter_state(named_params, keys_to_match):
     to_return = {k: t for k, t in named_params if any(key_match in k for key_match in keys_to_match)}
-    to_return = {k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()}
+    to_return = {k: v.detach().cpu().clone() for k, v in to_return.items()}
     return to_return
 
 
@@ -226,7 +210,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
         elif getattr(trainer.args, "tune_vision_tokenizer", 'none') == "all":
             keys_to_match.extend(['vision_tower'])
 
-        weight_to_save = get_mm_adapter_state_maybe_zero_3(trainer.model.named_parameters(), keys_to_match)
+        weight_to_save = get_mm_adapter_state(trainer.model.named_parameters(), keys_to_match)
         trainer.model.config.save_pretrained(output_dir)
 
         current_folder = output_dir.split('/')[-1]
@@ -238,11 +222,6 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
                 torch.save(weight_to_save, os.path.join(mm_projector_folder, f'{current_folder}.bin'))
             else:
                 torch.save(weight_to_save, os.path.join(output_dir, f'mm_projector.bin'))
-        return
-
-    if trainer.deepspeed:
-        torch.cuda.synchronize()
-        trainer.save_model(output_dir)
         return
 
     state_dict = trainer.model.state_dict()
@@ -596,10 +575,10 @@ def train():
     trainer.save_state()
     model.config.use_cache = True
     if training_args.lora_enable:
-        state_dict = get_peft_state_maybe_zero_3(
+        state_dict = get_peft_state(
             model.named_parameters(), training_args.lora_bias
         )
-        non_lora_state_dict = get_peft_state_non_lora_maybe_zero_3(
+        non_lora_state_dict = get_peft_state_non_lora(
             model.named_parameters()
         )
         if training_args.local_rank == 0 or training_args.local_rank == -1:
