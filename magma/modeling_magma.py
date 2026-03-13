@@ -157,10 +157,14 @@ class MagmaPreTrainedModel(PreTrainedModel):
             module.class_embedding.data.normal_(mean=0.0, std=std)
 
         if isinstance(module, (nn.Linear, nn.Conv2d)):
+            if module.weight.dtype in (torch.uint8, torch.int8):
+                return
             module.weight.data.normal_(mean=0.0, std=std)
             if module.bias is not None:
                 module.bias.data.zero_()
         elif isinstance(module, nn.Embedding):
+            if module.weight.dtype in (torch.uint8, torch.int8):
+                return
             module.weight.data.normal_(mean=0.0, std=std)
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
