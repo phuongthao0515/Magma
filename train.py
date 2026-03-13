@@ -496,10 +496,11 @@ def train():
             if training_args.fp16:
                 model.to(torch.float16)
         rank0_print("Adding LoRA adapters...")
-        model = get_peft_model(model, lora_config)
+        model = get_peft_model(model, lora_config) #add LORA adapters
     
     if model_args.tune_mm_mlp_adapter:
-        model.requires_grad_(False)
+        if not training_args.lora_enable:
+            model.requires_grad_(False)
         for p in model.multi_modal_projector.parameters():
             p.requires_grad = True
 
