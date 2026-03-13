@@ -12,6 +12,7 @@ python train.py \
     --gradient_accumulation_steps 4 \
     --learning_rate 2e-4 \
     --save_steps 100 \
+    --save_total_limit 3 \
     --logging_steps 10 \
     --gradient_checkpointing True \
     --bits 4 \
