@@ -782,6 +782,7 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
             valid_mask = labels[..., 1:] != -100
             shift_logits = self.language_model.lm_head(hidden_states[:,:-1][valid_mask]).contiguous()
             shift_logits = shift_logits.view(-1, self.language_model.config.vocab_size)
+            shift_logits = shift_logits.float()
             logits = shift_logits # dummy logits
             shift_labels = labels[..., 1:][valid_mask].contiguous()
             shift_labels = shift_labels.to(shift_logits.device)
@@ -798,21 +799,18 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                 # log the action accuracy
             else:
                 action_accuracy = torch.tensor(0.0).to(shift_logits.device)
-            # torch distributed gather the action accuracy across all devices     
-            action_accuracy = action_accuracy.unsqueeze(0)
-            # gather the action accuracy across all devices
-            action_accuracy_gather = [torch.zeros_like(action_accuracy) for _ in range(dist.get_world_size())]
-            dist.all_gather(action_accuracy_gather, action_accuracy)
-            # concatenate the action accuracy across all devices
-            action_accuracy = torch.cat(action_accuracy_gather)            
-            
-            if dist.get_rank() == 0:            
-                # remove zero values
-                if action_accuracy.mean() == 0:
-                    wandb.log({"action_accuracy": action_accuracy.mean().item()})
-                else:
-                    action_accuracy = action_accuracy[action_accuracy != 0]
-                    wandb.log({"action_accuracy": action_accuracy.mean().item()})
+            if dist.is_initialized():
+                action_accuracy = action_accuracy.unsqueeze(0)
+                action_accuracy_gather = [torch.zeros_like(action_accuracy) for _ in range(dist.get_world_size())]
+                dist.all_gather(action_accuracy_gather, action_accuracy)
+                action_accuracy = torch.cat(action_accuracy_gather)
+
+                if dist.get_rank() == 0:
+                    if action_accuracy.mean() == 0:
+                        wandb.log({"action_accuracy": action_accuracy.mean().item()})
+                    else:
+                        action_accuracy = action_accuracy[action_accuracy != 0]
+                        wandb.log({"action_accuracy": action_accuracy.mean().item()})
         else:
             logits = self.language_model.lm_head(hidden_states)
             logits = logits.float()
