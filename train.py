@@ -365,6 +365,7 @@ def train():
             trust_remote_code=True
         )        
         model.config.tokenizer_vocab_size = magma_processor.tokenizer.vocab_size
+        model.config.image_token_index = magma_processor.tokenizer.convert_tokens_to_ids("<image>")
     else:
         vision_config = {
             "img_size": model_args.img_size,
