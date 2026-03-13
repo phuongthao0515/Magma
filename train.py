@@ -48,7 +48,7 @@ from data import *
 local_rank = None
 
 def rank0_print(*args):
-    if local_rank == 0:
+    if local_rank == 0 or local_rank == -1:
         print(*args)
 
 from packaging import version
@@ -180,7 +180,7 @@ def get_mm_adapter_state(named_params, keys_to_match):
 def find_all_linear_names(model):
     cls = torch.nn.Linear
     lora_module_names = set()
-    multimodal_keywords = ['mm_projector', 'vision_tower', 'vision_resampler']
+    multimodal_keywords = ['multi_modal_projector', 'vision_tower', 'vision_resampler']
     for name, module in model.named_modules():
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
@@ -340,12 +340,10 @@ def train():
         from transformers import BitsAndBytesConfig
         bnb_model_from_pretrained_args.update(dict(
             device_map={"": training_args.device},
-            load_in_4bit=training_args.bits == 4,
-            load_in_8bit=training_args.bits == 8,
             quantization_config=BitsAndBytesConfig(
                 load_in_4bit=training_args.bits == 4,
                 load_in_8bit=training_args.bits == 8,
-                llm_int8_skip_modules=["mm_projector"],
+                llm_int8_skip_modules=["multi_modal_projector", "lm_head"],
                 llm_int8_threshold=6.0,
                 llm_int8_has_fp16_weight=False,
                 bnb_4bit_compute_dtype=compute_dtype,
