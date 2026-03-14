@@ -301,7 +301,7 @@ class MagmaTrainer(Trainer):
                 print(f"save checkpoint to {os.path.join(output_dir, f'mm_projector.bin')}")
                 torch.save(weight_to_save, os.path.join(output_dir, f'mm_projector.bin'))
         else:
-            super(MagmaTrainer, self)._save_checkpoint(model, trial, metrics)
+            super(MagmaTrainer, self)._save_checkpoint(model, trial)
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         if getattr(self.args, 'tune_mm_mlp_adapter', False):
