@@ -63,7 +63,7 @@ class ModelArguments:
     vision_tower_ckpt: Optional[str] = field(default=None)
     img_anyres_strategy: Optional[str] = field(default='crop')
     proj_vis_to_txt_tokens: bool = field(default=False)
-    img_size: Optional[int] = field(default=640)   # default to the last layer
+    img_size: Optional[int] = field(default=768)   # 768 so mark IDs are larger and more visible to the vision encoder
     vision_backbone: Optional[str] = field(default="convnextlarge")
     tune_vision_tokenizer: Optional[str] = field(default='none')
     mm_vision_select_layer: Optional[int] = field(default=-1)   # default to the last layer
