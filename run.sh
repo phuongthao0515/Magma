@@ -10,7 +10,7 @@ python train.py \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 4 \
-    --learning_rate 2e-4 \
+    --learning_rate 1e-4 \
     --save_steps 100 \
     --logging_steps 10 \
     --gradient_checkpointing True \
