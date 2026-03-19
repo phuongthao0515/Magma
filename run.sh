@@ -19,4 +19,5 @@ python train.py \
     --lora_r 64 \
     --lora_alpha 16 \
     --tune_mm_mlp_adapter True \
-    --report_to none
+    --report_to wandb \
+    --run_name finetune-mind2web-qlora
