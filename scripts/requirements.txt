@@ -1,8 +1,33 @@
-deepspeed
-faiss
+# ── Core (required for training + evaluation) ────────────────────────────────
+torch
+torchvision
+git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.48.2
+peft
+bitsandbytes
+accelerate
+datasets
 open_clip_torch
-kmeans_pytorch
+opencv-python-headless
+pillow
+tqdm
+pyyaml
+numpy
+safetensors
+packaging
+huggingface_hub
+tokenizers
+ipython
+wandb
+
+# ── Data processing ──────────────────────────────────────────────────────────
 decord
-draccus
-# git+https://github.com/facebookresearch/co-tracker.git
-pip install git+https://github.com/jwyang/transformers.git@dev/jwyang-v4.48.2
+faiss-cpu==1.13.2
+kmeans-pytorch
+git+https://github.com/facebookresearch/co-tracker.git
+
+# ── Agents / UI demo (optional, not needed for training) ─────────────────────
+# gradio
+# easyocr
+# supervision
+# ultralytics
+# paddleocr
