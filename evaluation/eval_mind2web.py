@@ -222,10 +222,8 @@ def annotate_image(image, sample_id, gt, pred, raw_response):
     else:
         a = pred.get("ACTION") == gt.get("ACTION")
         e = str(pred.get("MARK")) == str(gt.get("MARK"))
-        v = True
-        if gt.get("ACTION") == "TYPE":
-            v = pred.get("VALUE") == gt.get("VALUE")
-        ok = a and e and (gt.get("ACTION") != "TYPE" or v)
+        v = str(pred.get("VALUE")) == str(gt.get("VALUE"))
+        ok = a and e and v
         status = "CORRECT" if ok else "WRONG"
         color = (0, 150, 0) if ok else (200, 0, 0)
 
@@ -298,10 +296,8 @@ def evaluate_checkpoint(checkpoint_path: str, dataset: list):
             else:
                 a = pred.get("ACTION") == gt.get("ACTION")
                 e = str(pred.get("MARK")) == str(gt.get("MARK"))
-                v = True
-                if gt.get("ACTION") == "TYPE":
-                    v = pred.get("VALUE") == gt.get("VALUE")
-                prefix = "OK" if (a and e and (gt.get("ACTION") != "TYPE" or v)) else "FAIL"
+                v = str(pred.get("VALUE")) == str(gt.get("VALUE"))
+                prefix = "OK" if (a and e and v) else "FAIL"
             ann.save(os.path.join(ckpt_image_dir, f"{idx:04d}_{prefix}_{sample.get('id', idx)}.png"))
 
     metrics = compute_metrics(results)
