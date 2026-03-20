@@ -387,7 +387,8 @@ def main():
     all_metrics = []
 
     if EVAL_ALL:
-        checkpoints = sorted(glob.glob(os.path.join(CHECKPOINT_DIR, "checkpoint-*")))
+        checkpoints = sorted(glob.glob(os.path.join(CHECKPOINT_DIR, "checkpoint-*")),
+                             key=lambda x: int(os.path.basename(x).split("-")[-1]))
         print(f"Found {len(checkpoints)} checkpoints")
         for ckpt in checkpoints:
             metrics, results = evaluate_checkpoint(ckpt, dataset)
