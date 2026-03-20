@@ -20,12 +20,12 @@ from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-mind2web-qlora"
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-mind2web-qlora-768-img-size/"
 VAL_JSON = "/home/thaole/thao_le/Magma/datasets/mind2web/mind2web_val.json"
 IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/mind2web"
-RESULTS_DIR = "/home/thaole/thao_le/Magma/results/mind2web_eval"
+RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/mind2web_eval_768_img_size"
 MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
-BATCH_SIZE = 2  # Increase for faster eval, decrease if OOM
+BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
 INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
 # =======================================
 
@@ -33,7 +33,7 @@ INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
 def patch_pytorch():
     """Patch torch.sum for PyTorch 2.10+ compatibility with Magma."""
     if not hasattr(torch, '_original_sum_backup'):
-        torch._original_sum_backup = torch.sum
+        torch._original_sum_backup = torch.sumb
 
     def _patched_sum(input, *args, **kwargs):
         if isinstance(input, bool):
@@ -64,6 +64,9 @@ def load_base_model():
     )
 
     processor = AutoProcessor.from_pretrained(BASE_MODEL, trust_remote_code=True)
+    # Match training resolution: must match --img_size used during training
+    # Without this, eval uses HF default of 512, causing train/eval mismatch
+    processor.image_processor.base_img_size = 768
     return model, processor
 
 
