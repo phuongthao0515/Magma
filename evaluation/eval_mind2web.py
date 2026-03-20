@@ -14,11 +14,10 @@ import re
 import json
 import glob
 import torch
-import torch.nn as nn
 from tqdm import tqdm
 from PIL import Image, ImageDraw, ImageFont
 from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoProcessor, AutoConfig, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
 
 
 # ── Configuration (absolute paths, no CLI arguments) ─────────────────────────
@@ -26,7 +25,7 @@ PROJECT_ROOT = "/home/sonnguyen/thaole/magma/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
 
 # Single checkpoint evaluation
-CHECKPOINT_PATH = os.path.join(PROJECT_ROOT, "checkpoints", "finetune-mind2web-qlora", "checkpoint-500")
+CHECKPOINT_PATH = os.path.join(PROJECT_ROOT, "checkpoints", "finetune-mind2web-qlora", "checkpoint-1655")
 
 # Multi-checkpoint evaluation: set EVAL_ALL = True to sweep all checkpoint-* dirs
 EVAL_ALL = False
@@ -62,31 +61,6 @@ if not hasattr(torch, "_original_sum_backup"):
     torch.sum = _patched_sum
 
 
-# ── Safe _init_weights (avoids normal_() on int8/uint8 params) ───────────────
-def _safe_init_weights(self, module):
-    std = (
-        self.config.initializer_range
-        if hasattr(self.config, "initializer_range")
-        else self.config.text_config.initializer_range
-    )
-    if hasattr(module, "class_embedding"):
-        if module.class_embedding.data.is_floating_point():
-            module.class_embedding.data.normal_(mean=0.0, std=std)
-    if isinstance(module, (nn.Linear, nn.Conv2d)):
-        w = getattr(module, "weight", None)
-        if w is not None and w.data.is_floating_point():
-            w.data.normal_(mean=0.0, std=std)
-        b = getattr(module, "bias", None)
-        if b is not None and b.data.is_floating_point():
-            b.data.zero_()
-    elif isinstance(module, nn.Embedding):
-        w = getattr(module, "weight", None)
-        if w is not None and w.data.is_floating_point():
-            w.data.normal_(mean=0.0, std=std)
-            if module.padding_idx is not None:
-                w.data[module.padding_idx].zero_()
-
-
 # ── Model loading (base model cached, LoRA adapters swapped) ─────────────────
 _cached_base_model = None
 _cached_processor = None
@@ -100,35 +74,22 @@ def load_base_model():
         return _cached_base_model, _cached_processor
 
     print(f"Loading base model: {BASE_MODEL}")
-    dtype = torch.bfloat16
 
-    config = AutoConfig.from_pretrained(BASE_MODEL, trust_remote_code=True)
-    model_class = AutoModelForCausalLM._model_mapping[type(config)]
-    model_class._init_weights = _safe_init_weights
+    quantization_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+    )
 
-    if USE_4BIT:
-        qconfig = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=dtype,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-        )
-        model = model_class.from_pretrained(
-            BASE_MODEL,
-            trust_remote_code=True,
-            torch_dtype=dtype,
-            device_map={"": 0},
-            quantization_config=qconfig,
-            attn_implementation="eager",
-        )
-    else:
-        model = model_class.from_pretrained(
-            BASE_MODEL,
-            trust_remote_code=True,
-            torch_dtype=dtype,
-            attn_implementation="eager",
-        )
-        model.to("cuda")
+    model = AutoModelForCausalLM.from_pretrained(
+        BASE_MODEL,
+        trust_remote_code=True,
+        torch_dtype=torch.bfloat16,
+        device_map={"": 0},
+        quantization_config=quantization_config,
+        attn_implementation="eager",
+    )
 
     processor = AutoProcessor.from_pretrained(BASE_MODEL, trust_remote_code=True)
     processor.image_processor.base_img_size = IMG_SIZE
@@ -178,7 +139,7 @@ def run_inference(model, processor, image: Image.Image, prompt: str) -> str:
             do_sample=False,
             num_beams=1,
             max_new_tokens=256,
-            use_cache=False,
+            use_cache=True,
         )
 
     generate_ids = output_ids[:, inputs["input_ids"].shape[-1]:]
@@ -201,7 +162,11 @@ def parse_action(response: str) -> dict:
 
 def compute_metrics(results: list) -> dict:
     total = len(results)
-    action_ok = elem_ok = value_ok = overall_ok = parse_err = 0
+    action_ok = elem_ok = overall_ok = parse_err = 0
+    type_total = 0
+    type_value_ok = 0
+    select_total = 0
+    select_value_ok = 0
 
     for r in results:
         gt, pred = r["ground_truth"], r["prediction"]
@@ -211,6 +176,8 @@ def compute_metrics(results: list) -> dict:
 
         a = pred.get("ACTION") == gt.get("ACTION")
         e = str(pred.get("MARK")) == str(gt.get("MARK"))
+
+        # Value match (same logic as notebook: only checked for TYPE)
         v = True
         if gt.get("ACTION") == "TYPE":
             v = pred.get("VALUE") == gt.get("VALUE")
@@ -218,7 +185,15 @@ def compute_metrics(results: list) -> dict:
         action_ok += int(a)
         elem_ok += int(e)
         if gt.get("ACTION") == "TYPE":
-            value_ok += int(v)
+            type_total += 1
+            if v:
+                type_value_ok += 1
+        if gt.get("ACTION") == "SELECT":
+            select_total += 1
+            if pred.get("VALUE") == gt.get("VALUE"):
+                select_value_ok += 1
+
+        # Overall: same as notebook
         if a and e and (gt.get("ACTION") != "TYPE" or v):
             overall_ok += 1
 
@@ -229,8 +204,12 @@ def compute_metrics(results: list) -> dict:
         "parse_errors": parse_err,
         "action_accuracy": action_ok / valid if valid else 0,
         "element_accuracy": elem_ok / valid if valid else 0,
-        "value_accuracy": value_ok / valid if valid else 0,
+        "value_accuracy": type_value_ok / valid if valid else 0,
         "overall_accuracy": overall_ok / valid if valid else 0,
+        "type_value_accuracy": type_value_ok / type_total if type_total else 0,
+        "type_total": type_total,
+        "select_value_accuracy": select_value_ok / select_total if select_total else 0,
+        "select_total": select_total,
     }
 
 
@@ -331,11 +310,13 @@ def evaluate_checkpoint(checkpoint_path: str, dataset: list):
     metrics["checkpoint"] = checkpoint_path
 
     print(f"\nResults for {os.path.basename(checkpoint_path)}:")
-    print(f"   Action Accuracy:  {metrics['action_accuracy']*100:.2f}%")
-    print(f"   Element Accuracy: {metrics['element_accuracy']*100:.2f}%")
-    print(f"   Value Accuracy:   {metrics['value_accuracy']*100:.2f}%")
-    print(f"   Overall Accuracy: {metrics['overall_accuracy']*100:.2f}%")
-    print(f"   Parse Errors:     {metrics['parse_errors']}/{metrics['total_samples']}")
+    print(f"   Action Accuracy:    {metrics['action_accuracy']*100:.2f}%")
+    print(f"   Element Accuracy:   {metrics['element_accuracy']*100:.2f}%")
+    print(f"   Value Accuracy:     {metrics['value_accuracy']*100:.2f}%")
+    print(f"   Overall Accuracy:   {metrics['overall_accuracy']*100:.2f}%")
+    print(f"   Parse Errors:       {metrics['parse_errors']}/{metrics['total_samples']}")
+    print(f"   TYPE Value Acc:     {metrics['type_value_accuracy']*100:.2f}% ({metrics['type_total']} samples)")
+    print(f"   SELECT Value Acc:   {metrics['select_value_accuracy']*100:.2f}% ({metrics['select_total']} samples)")
 
     # Unload LoRA adapter but keep the cached base model
     if isinstance(model, PeftModel):
