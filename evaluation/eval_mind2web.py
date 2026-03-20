@@ -162,7 +162,7 @@ def parse_action(response: str) -> dict:
 
 def compute_metrics(results: list) -> dict:
     total = len(results)
-    action_ok = elem_ok = overall_ok = parse_err = 0
+    action_ok = elem_ok = value_ok = overall_ok = parse_err = 0
     type_total = 0
     type_value_ok = 0
     select_total = 0
@@ -176,25 +176,23 @@ def compute_metrics(results: list) -> dict:
 
         a = pred.get("ACTION") == gt.get("ACTION")
         e = str(pred.get("MARK")) == str(gt.get("MARK"))
-
-        # Value match (same logic as notebook: only checked for TYPE)
-        v = True
-        if gt.get("ACTION") == "TYPE":
-            v = pred.get("VALUE") == gt.get("VALUE")
+        v = str(pred.get("VALUE")) == str(gt.get("VALUE"))
 
         action_ok += int(a)
         elem_ok += int(e)
+        value_ok += int(v)
+
         if gt.get("ACTION") == "TYPE":
             type_total += 1
             if v:
                 type_value_ok += 1
         if gt.get("ACTION") == "SELECT":
             select_total += 1
-            if pred.get("VALUE") == gt.get("VALUE"):
+            if v:
                 select_value_ok += 1
 
-        # Overall: same as notebook
-        if a and e and (gt.get("ACTION") != "TYPE" or v):
+        # Overall: all three must match
+        if a and e and v:
             overall_ok += 1
 
     valid = total - parse_err
@@ -204,7 +202,7 @@ def compute_metrics(results: list) -> dict:
         "parse_errors": parse_err,
         "action_accuracy": action_ok / valid if valid else 0,
         "element_accuracy": elem_ok / valid if valid else 0,
-        "value_accuracy": type_value_ok / valid if valid else 0,
+        "value_accuracy": value_ok / valid if valid else 0,
         "overall_accuracy": overall_ok / valid if valid else 0,
         "type_value_accuracy": type_value_ok / type_total if type_total else 0,
         "type_total": type_total,
