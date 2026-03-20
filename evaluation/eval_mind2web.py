@@ -28,7 +28,7 @@ BASE_MODEL = "microsoft/Magma-8B"
 CHECKPOINT_PATH = os.path.join(PROJECT_ROOT, "checkpoints", "finetune-mind2web-qlora", "checkpoint-1655")
 
 # Multi-checkpoint evaluation: set EVAL_ALL = True to sweep all checkpoint-* dirs
-EVAL_ALL = False
+EVAL_ALL = True
 CHECKPOINT_DIR = os.path.join(PROJECT_ROOT, "checkpoints", "finetune-mind2web-qlora")
 
 # Dataset
@@ -257,7 +257,7 @@ def annotate_image(image, sample_id, gt, pred, raw_response):
 # ── Per-checkpoint evaluation ─────────────────────────────────────────────────
 def evaluate_checkpoint(checkpoint_path: str, dataset: list):
     print(f"\n{'='*60}")
-    print(f"Evaluating: {checkpoint_path}")
+    print(f"Evaluating: {os.path.basename(checkpoint_path)}")
     print("=" * 60)
 
     model, processor = load_model(checkpoint_path)
@@ -319,6 +319,62 @@ def evaluate_checkpoint(checkpoint_path: str, dataset: list):
     return metrics, results
 
 
+# ── Wandb logging ─────────────────────────────────────────────────────────────
+LOG_WANDB = True
+WANDB_PROJECT = "magma-mind2web-eval"
+
+
+def log_to_wandb(all_metrics: list):
+    """Log all checkpoint metrics to wandb as a table + per-checkpoint runs."""
+    try:
+        import wandb
+    except ImportError:
+        print("wandb not installed, skipping wandb logging")
+        return
+
+    wandb.init(project=WANDB_PROJECT, name="eval-all-checkpoints", reinit=True)
+
+    # Log comparison table
+    columns = ["Checkpoint", "Action%", "Element%", "Value%", "Overall%",
+               "TYPE Value%", "SELECT Value%", "Parse Errors"]
+    table = wandb.Table(columns=columns)
+    for m in all_metrics:
+        ckpt_name = os.path.basename(m["checkpoint"])
+        step = int(ckpt_name.split("-")[-1]) if "-" in ckpt_name else 0
+        table.add_data(
+            ckpt_name,
+            round(m["action_accuracy"] * 100, 2),
+            round(m["element_accuracy"] * 100, 2),
+            round(m["value_accuracy"] * 100, 2),
+            round(m["overall_accuracy"] * 100, 2),
+            round(m["type_value_accuracy"] * 100, 2),
+            round(m["select_value_accuracy"] * 100, 2),
+            m["parse_errors"],
+        )
+
+        # Log metrics per step for line charts
+        wandb.log({
+            "step": step,
+            "eval/action_accuracy": m["action_accuracy"],
+            "eval/element_accuracy": m["element_accuracy"],
+            "eval/value_accuracy": m["value_accuracy"],
+            "eval/overall_accuracy": m["overall_accuracy"],
+            "eval/type_value_accuracy": m["type_value_accuracy"],
+            "eval/select_value_accuracy": m["select_value_accuracy"],
+            "eval/parse_errors": m["parse_errors"],
+        })
+
+    wandb.log({"eval/checkpoint_comparison": table})
+
+    # Find and log best
+    best = max(all_metrics, key=lambda x: x["overall_accuracy"])
+    wandb.run.summary["best_checkpoint"] = os.path.basename(best["checkpoint"])
+    wandb.run.summary["best_overall_accuracy"] = best["overall_accuracy"]
+
+    wandb.finish()
+    print("Results logged to wandb")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -346,17 +402,27 @@ def main():
         with open(out, "w") as f:
             json.dump({"metrics": metrics, "predictions": results}, f, indent=2)
 
+    # Print comparison table
     if len(all_metrics) > 1:
-        print("\n" + "=" * 60)
-        print("CHECKPOINT RANKING (by Overall Accuracy)")
-        print("=" * 60)
+        print("\n" + "=" * 100)
+        print(f"{'Checkpoint':<20} {'Action%':>8} {'Element%':>9} {'Value%':>8} {'Overall%':>9} {'TYPE Val%':>10} {'SEL Val%':>9} {'Errors':>7}")
+        print("-" * 100)
         ranked = sorted(all_metrics, key=lambda x: x["overall_accuracy"], reverse=True)
-        for i, m in enumerate(ranked):
-            print(f"{i+1}. {os.path.basename(m['checkpoint'])}: {m['overall_accuracy']*100:.2f}%")
-        print(f"\nBEST: {os.path.basename(ranked[0]['checkpoint'])} "
+        for m in ranked:
+            ckpt = os.path.basename(m["checkpoint"])
+            print(f"{ckpt:<20} {m['action_accuracy']*100:>7.2f}% {m['element_accuracy']*100:>8.2f}% "
+                  f"{m['value_accuracy']*100:>7.2f}% {m['overall_accuracy']*100:>8.2f}% "
+                  f"{m['type_value_accuracy']*100:>9.2f}% {m['select_value_accuracy']*100:>8.2f}% "
+                  f"{m['parse_errors']:>5}/{m['total_samples']}")
+        print("=" * 100)
+        print(f"BEST: {os.path.basename(ranked[0]['checkpoint'])} "
               f"({ranked[0]['overall_accuracy']*100:.2f}%)")
         with open(os.path.join(OUTPUT_DIR, "checkpoint_ranking.json"), "w") as f:
             json.dump(ranked, f, indent=2)
+
+    # Log to wandb
+    if LOG_WANDB:
+        log_to_wandb(all_metrics)
 
     print(f"\nResults saved to: {OUTPUT_DIR}")
 
