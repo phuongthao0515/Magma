@@ -1,9 +1,12 @@
 """
-Run SoM (YOLO/OmniParser + MarkHelper) on Word dataset images and fill MARK IDs.
+Run SoM (OmniParser v2 + MarkHelper) on Word dataset images and fill MARK IDs.
+
+Uses OmniParser v2 icon detection model (microsoft/OmniParser-v2.0) to detect UI elements.
+OCR is not used — OmniParser's YOLO model detects interactive elements including text buttons.
 
 Pipeline:
 1. Read word_mind2web_style.json (samples) + word_tasks.jsonl (coordinates)
-2. For each unique image: YOLO (OmniParser) → detect UI elements → annotate with marks
+2. For each unique image: OmniParser → detect UI elements → annotate with marks
 3. Match action coordinates to nearest mark → fill MARK ID
 4. Save SoM-annotated images + updated JSON
 
@@ -32,12 +35,13 @@ from tqdm import tqdm
 WORD_JSONL = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_tasks.jsonl"
 WORD_MIND2WEB = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_mind2web_style.json"
 IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/office_images"
-OUTPUT_IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_images_som"
-OUTPUT_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_mind2web_som.json"
+OUTPUT_IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_images_som_dense_iou0.1"
+OUTPUT_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_mind2web_som_dense_iou0.1.json"
 
 WEIGHTS_DIR = "/home/thaole/thao_le/Magma/weights"
-YOLO_MODEL_PATH = os.path.join(WEIGHTS_DIR, "icon_detect", "model.pt")
+OMNIPARSER_MODEL_PATH = os.path.join(WEIGHTS_DIR, "icon_detect", "model.pt")
 BOX_THRESHOLD = 0.05
+MIN_BOX_AREA = 0.0  # No filtering - detect all elements
 # =======================================
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,6 +52,7 @@ from agents.ui_agent.util.som import MarkHelper, plot_boxes_with_marks
 
 def detect_ui_elements(image, yolo_model):
     """Detect UI elements with YOLO (OmniParser).
+    Filters out boxes smaller than MIN_BOX_AREA.
     Returns list of (y, x, h, w) normalized bboxes.
     """
     w, h = image.size
@@ -55,7 +60,9 @@ def detect_ui_elements(image, yolo_model):
     bboxes = []
     for box in result[0].boxes.xyxy:
         x1, y1, x2, y2 = box.tolist()
-        bboxes.append((y1 / h, x1 / w, (y2 - y1) / h, (x2 - x1) / w))
+        bh, bw = (y2 - y1) / h, (x2 - x1) / w
+        if bh * bw >= MIN_BOX_AREA:
+            bboxes.append((y1 / h, x1 / w, bh, bw))
     return bboxes
 
 
@@ -126,9 +133,9 @@ ACTIONS_NEED_MARK = {"CLICK", "DOUBLE_CLICK", "RIGHT_CLICK", "MIDDLE_CLICK", "TY
 
 
 def main():
-    if not os.path.exists(YOLO_MODEL_PATH):
-        raise FileNotFoundError(f"YOLO weights not found at: {YOLO_MODEL_PATH}")
-    print(f"YOLO weights: {YOLO_MODEL_PATH}")
+    if not os.path.exists(OMNIPARSER_MODEL_PATH):
+        raise FileNotFoundError(f"YOLO weights not found at: {OMNIPARSER_MODEL_PATH}")
+    print(f"YOLO weights: {OMNIPARSER_MODEL_PATH}")
 
     # Step 1: Build coordinate mappings
     print("\nBuilding coordinate mappings from JSONL...")
@@ -144,8 +151,10 @@ def main():
 
     # Step 3: Load YOLO model
     print("\nLoading YOLO (OmniParser)...")
-    yolo_model = YOLO(YOLO_MODEL_PATH)
+    yolo_model = YOLO(OMNIPARSER_MODEL_PATH)
     mark_helper = MarkHelper()
+    mark_helper.min_font_size = 10
+    mark_helper.max_font_size = 14
     os.makedirs(OUTPUT_IMAGE_DIR, exist_ok=True)
 
     # Step 4: Process images and fill MARK
@@ -179,7 +188,7 @@ def main():
             if bboxes:
                 som_image = plot_boxes_with_marks(
                     image.copy(), bboxes, mark_helper,
-                    edgecolor=(255, 0, 0), linewidth=2,
+                    edgecolor=(255, 0, 0), linewidth=1,
                     normalized_to_pixel=True, add_mark=True,
                 )
                 som_image.save(os.path.join(OUTPUT_IMAGE_DIR, som_image_name))
