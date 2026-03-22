@@ -16,14 +16,15 @@ from tqdm import tqdm
 from PIL import Image
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoProcessor, BitsAndBytesConfig
+import wandb
 
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-mind2web-qlora-768-img-size/"
-VAL_JSON = "/home/thaole/thao_le/Magma/datasets/mind2web/mind2web_val.json"
-IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/mind2web"
-RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/mind2web_eval_768_img_size"
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-wordsom-qlora-768-img-size/"
+VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_val.json"
+IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_images_som_dense_iou0.1"
+RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_eval"
 MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
 BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
 INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
@@ -286,6 +287,9 @@ def print_summary_table(all_metrics):
 def main():
     patch_pytorch()
 
+    # Init wandb
+    wandb.init(project="magma-word-som", name="eval-checkpoints", job_type="eval")
+
     # Load val data
     print(f"Loading val data from: {VAL_JSON}")
     with open(VAL_JSON) as f:
@@ -336,6 +340,16 @@ def main():
         print(f"  Overall Accuracy: {metrics['overall_acc']*100:.1f}%")
         print(f"  Parse Error Rate: {metrics['parse_error_rate']*100:.1f}%")
 
+        # Log to wandb
+        step = int(ckpt_name.split("-")[-1]) if ckpt_name != "base_model" else 0
+        wandb.log({
+            "eval/action_acc": metrics['action_acc'],
+            "eval/element_acc": metrics['element_acc'],
+            "eval/value_acc": metrics['value_acc'],
+            "eval/overall_acc": metrics['overall_acc'],
+            "eval/parse_error_rate": metrics['parse_error_rate'],
+        }, step=step)
+
         # Save per-checkpoint results
         result_file = os.path.join(RESULTS_DIR, f"{ckpt_name}.json")
         with open(result_file, 'w') as f:
@@ -356,6 +370,7 @@ def main():
     with open(summary_file, 'w') as f:
         json.dump(all_metrics, f, indent=2)
     print(f"\nSummary saved to: {summary_file}")
+    wandb.finish()
 
 
 if __name__ == "__main__":
