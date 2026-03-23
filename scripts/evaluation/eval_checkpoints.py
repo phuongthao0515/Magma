@@ -22,7 +22,7 @@ import wandb
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-wordsom-qlora-768-img-size/"
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-wordsom-qlora-768-img-size/checkpoint-1024"
 VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_val.json"
 IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_images_som_dense_iou0.1"
 RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_eval"
@@ -30,7 +30,7 @@ MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
 BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
 INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
 EVAL_HOURS = 3  # Run eval for this long, then rest
-REST_MINUTES = 60  # Rest duration in minutes
+REST_MINUTES = 0  # Rest duration in minutes
 # =======================================
 
 
