@@ -2,18 +2,37 @@
 # Word SoM QLoRA Training Script
 #
 # Usage:
-#   bash run.sh              # normal run (no cycling)
-#   bash run.sh --cycle      # auto-cycle: train 3h, rest 1h, repeat
+#   bash run.sh                          # from base Magma-8B
+#   bash run.sh --from-mind2web          # from mind2web-merged base
+#   bash run.sh --cycle                  # with UPS cycling (3h train, 1h rest)
+#   bash run.sh --from-mind2web --cycle  # both flags
 
 TRAIN_HOURS=3
 REST_HOURS=1
-OUTPUT_DIR="./checkpoints/finetune-wordsom-qlora-768-img-size"
 CYCLE_MODE=false
 
-if [ "$1" == "--cycle" ]; then
-    CYCLE_MODE=true
-    echo "Cycle mode: train ${TRAIN_HOURS}h, rest ${REST_HOURS}h"
-fi
+# Default: train from original Magma-8B
+BASE_MODEL="microsoft/Magma-8B"
+OUTPUT_DIR="./checkpoints/finetune-wordsom-qlora-768-img-size"
+RUN_NAME="word-som-qlora-base-mind2web"
+
+# Parse flags
+for arg in "$@"; do
+    case $arg in
+        --from-mind2web)
+            BASE_MODEL="./checkpoints/magma-8b-mind2web-merged"
+            OUTPUT_DIR="./checkpoints/finetune-wordsom-from-mind2web-qlora-768-img-size"
+            RUN_NAME="word-som-from-mind2web-qlora"
+            ;;
+        --cycle)
+            CYCLE_MODE=true
+            ;;
+    esac
+done
+
+echo "Base model:  $BASE_MODEL"
+echo "Output dir:  $OUTPUT_DIR"
+echo "Cycle mode:  $CYCLE_MODE"
 
 run_training() {
     if [ "$CYCLE_MODE" = true ]; then
@@ -24,7 +43,7 @@ run_training() {
 }
 
 TRAIN_ARGS=(
-    --model_name_or_path microsoft/Magma-8B
+    --model_name_or_path $BASE_MODEL
     --data_path "data_configs/word_som.yaml"
     --output_dir $OUTPUT_DIR
     --is_multimodal True
@@ -44,7 +63,7 @@ TRAIN_ARGS=(
     --tune_mm_mlp_adapter True
     --img_size 768
     --report_to wandb
-    --run_name "word-som-qlora"
+    --run_name "$RUN_NAME"
 )
 
 if [ "$CYCLE_MODE" = true ]; then
