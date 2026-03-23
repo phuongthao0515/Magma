@@ -47,9 +47,10 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     model.save_pretrained(OUTPUT_DIR, safe_serialization=True)
 
-    print("Saving processor...")
+    print("Saving tokenizer and image processor...")
     processor = AutoProcessor.from_pretrained(BASE_MODEL, trust_remote_code=True)
-    processor.save_pretrained(OUTPUT_DIR)
+    processor.tokenizer.save_pretrained(OUTPUT_DIR)
+    processor.image_processor.save_pretrained(OUTPUT_DIR)
 
     print("Done!")
 
