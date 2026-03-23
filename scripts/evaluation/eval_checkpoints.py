@@ -10,6 +10,7 @@ import sys
 import json
 import re
 import glob
+import time
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -28,13 +29,15 @@ RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_eval"
 MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
 BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
 INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
+EVAL_HOURS = 3  # Run eval for this long, then rest
+REST_MINUTES = 60  # Rest duration in minutes
 # =======================================
 
 
 def patch_pytorch():
     """Patch torch.sum for PyTorch 2.10+ compatibility with Magma."""
     if not hasattr(torch, '_original_sum_backup'):
-        torch._original_sum_backup = torch.sumb
+        torch._original_sum_backup = torch.sum
 
     def _patched_sum(input, *args, **kwargs):
         if isinstance(input, bool):
@@ -296,9 +299,14 @@ def main():
         val_data = json.load(f)
     print(f"Val samples: {len(val_data)}")
 
-    # Find all checkpoints
-    pattern = os.path.join(CHECKPOINT_DIR, "checkpoint-*")
-    checkpoints = sorted(glob.glob(pattern), key=lambda x: int(x.split("-")[-1]))
+    # Find checkpoints: supports single checkpoint path or directory of checkpoints
+    if os.path.basename(CHECKPOINT_DIR).startswith("checkpoint-"):
+        # Single checkpoint path
+        checkpoints = [CHECKPOINT_DIR]
+    else:
+        # Directory containing multiple checkpoints
+        pattern = os.path.join(CHECKPOINT_DIR, "checkpoint-*")
+        checkpoints = sorted(glob.glob(pattern), key=lambda x: int(x.split("-")[-1]))
     print(f"Found {len(checkpoints)} checkpoints: {[os.path.basename(c) for c in checkpoints]}")
 
     if INCLUDE_BASE:
@@ -312,17 +320,42 @@ def main():
     print("Base model loaded!")
 
     all_metrics = []
+    start_time = time.time()
 
     for ckpt_path in checkpoints:
+        # Check if we need to rest
+        elapsed_hours = (time.time() - start_time) / 3600
+        if EVAL_HOURS > 0 and elapsed_hours >= EVAL_HOURS:
+            print(f"\nRan for {elapsed_hours:.1f}h. Resting for {REST_MINUTES}min...")
+            # Save progress before resting
+            summary_file = os.path.join(RESULTS_DIR, "summary.json")
+            with open(summary_file, 'w') as f:
+                json.dump(all_metrics, f, indent=2)
+            time.sleep(REST_MINUTES * 60)
+            start_time = time.time()
+            print(f"Resuming evaluation...")
+
         if ckpt_path is None:
             ckpt_name = "base_model"
+        else:
+            ckpt_name = os.path.basename(ckpt_path)
+
+        # Skip already evaluated checkpoints
+        result_file = os.path.join(RESULTS_DIR, f"{ckpt_name}.json")
+        if os.path.exists(result_file):
+            print(f"\nSkipping {ckpt_name} (already evaluated)")
+            with open(result_file) as f:
+                saved = json.load(f)
+            all_metrics.append(saved["metrics"])
+            continue
+
+        if ckpt_path is None:
             print(f"\n{'='*60}")
             print(f"Evaluating: {ckpt_name} (no LoRA)")
             print(f"{'='*60}")
             model = base_model
             model.eval()
         else:
-            ckpt_name = os.path.basename(ckpt_path)
             print(f"\n{'='*60}")
             print(f"Evaluating: {ckpt_name}")
             print(f"{'='*60}")
@@ -351,7 +384,6 @@ def main():
         }, step=step)
 
         # Save per-checkpoint results
-        result_file = os.path.join(RESULTS_DIR, f"{ckpt_name}.json")
         with open(result_file, 'w') as f:
             json.dump({"metrics": metrics, "results": results}, f, indent=2)
         print(f"  Results saved to: {result_file}")

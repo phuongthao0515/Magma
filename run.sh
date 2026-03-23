@@ -35,8 +35,7 @@ TRAIN_ARGS=(
     --learning_rate 1e-4
     --save_steps 100
     --logging_steps 10
-    --evaluation_strategy steps
-    --eval_steps 100
+    --evaluation_strategy no
     --gradient_checkpointing True
     --bits 4
     --lora_enable True
