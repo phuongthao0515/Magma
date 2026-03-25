@@ -13,8 +13,8 @@ CYCLE_MODE=false
 
 # Default: train from original Magma-8B
 BASE_MODEL="microsoft/Magma-8B"
-OUTPUT_DIR="./checkpoints/finetune-wordsom-qlora-768-img-size"
-RUN_NAME="word-som-qlora-base-mind2web"
+OUTPUT_DIR="./checkpoints/finetune-word-coord-qlora"
+RUN_NAME="word-coord-qlora"
 
 # Parse flags
 for arg in "$@"; do
@@ -44,7 +44,7 @@ run_training() {
 
 TRAIN_ARGS=(
     --model_name_or_path $BASE_MODEL
-    --data_path "data_configs/word_som.yaml"
+    --data_path "data_configs/word_coordinate.yaml"
     --output_dir $OUTPUT_DIR
     --is_multimodal True
     --bf16 True
