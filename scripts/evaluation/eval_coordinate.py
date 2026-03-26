@@ -1,8 +1,11 @@
 """
-Evaluate all Mind2Web checkpoints and compare results.
+Evaluate Word coordinate-based checkpoints.
+
+Uses distance-based matching for COORDINATE field instead of exact MARK match.
+Thresholds: 1% (~19px), 2% (~38px), 5% (~96px) on 1920x1080.
 
 Usage:
-    python scripts/evaluation/eval_checkpoints.py
+    python scripts/evaluation/eval_coordinate.py
 """
 
 import os
@@ -10,6 +13,7 @@ import sys
 import json
 import re
 import glob
+import math
 import time
 import torch
 import torch.nn as nn
@@ -22,20 +26,20 @@ import wandb
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-reduced-qlora/"
-VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/val.json"
-IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced"
-RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_reduced_eval"
-MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
-BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
-INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
-EVAL_HOURS = 3  # Run eval for this long, then rest
-REST_MINUTES = 30  # Rest duration in minutes
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-coord-qlora/checkpoint-900"
+VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_coord_val.json"
+IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/office_images"
+RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_coord_eval"
+MAX_SAMPLES = None
+BATCH_SIZE = 1
+INCLUDE_BASE = False
+EVAL_HOURS = 3
+REST_MINUTES = 30
+COORD_THRESHOLDS = [0.01, 0.02, 0.05]  # 1%, 2%, 5%
 # =======================================
 
 
 def patch_pytorch():
-    """Patch torch.sum for PyTorch 2.10+ compatibility with Magma."""
     if not hasattr(torch, '_original_sum_backup'):
         torch._original_sum_backup = torch.sum
 
@@ -50,14 +54,12 @@ def patch_pytorch():
 
 
 def load_base_model():
-    """Load quantized base model and processor."""
     quantization_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4"
     )
-
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL,
         trust_remote_code=True,
@@ -66,17 +68,12 @@ def load_base_model():
         quantization_config=quantization_config,
         attn_implementation="eager"
     )
-
     processor = AutoProcessor.from_pretrained(BASE_MODEL, trust_remote_code=True)
-    # Match training resolution: must match --img_size used during training
-    # Without this, eval uses HF default of 512, causing train/eval mismatch
     processor.image_processor.base_img_size = 768
     return model, processor
 
 
 def run_inference_batch(model, processor, images, instructions):
-    """Run batched inference on multiple samples. Returns list of response strings."""
-    # Build prompts for each sample
     formatted_prompts = []
     for instruction in instructions:
         full_prompt = f"<image_start><image><image_end>\n{instruction}"
@@ -90,12 +87,10 @@ def run_inference_batch(model, processor, images, instructions):
             )
         )
 
-    # Tokenize with padding for batching
     processor.tokenizer.padding_side = "left"
     if processor.tokenizer.pad_token is None:
         processor.tokenizer.pad_token = processor.tokenizer.eos_token
 
-    # Process each sample individually then stack
     all_pixel_values = []
     all_image_sizes = []
     all_input_ids = []
@@ -108,7 +103,6 @@ def run_inference_batch(model, processor, images, instructions):
         all_input_ids.append(inputs['input_ids'].squeeze(0))
         all_attention_masks.append(inputs['attention_mask'].squeeze(0))
 
-    # Pad input_ids and attention_mask to same length
     max_len = max(ids.shape[0] for ids in all_input_ids)
     pad_token_id = processor.tokenizer.pad_token_id
 
@@ -137,7 +131,6 @@ def run_inference_batch(model, processor, images, instructions):
             use_cache=True
         )
 
-    # Decode each response
     responses = []
     for i in range(len(images)):
         generate_ids = output_ids[i, batch_inputs["input_ids"].shape[-1]:]
@@ -148,7 +141,6 @@ def run_inference_batch(model, processor, images, instructions):
 
 
 def parse_action(text):
-    """Parse model response to extract {ACTION, MARK, VALUE} dict."""
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -161,19 +153,51 @@ def parse_action(text):
         return {"raw_response": text, "parse_error": True}
 
 
+def parse_coordinate(value):
+    if value is None or value == "None" or value == "null":
+        return None
+    if isinstance(value, list) and len(value) == 2:
+        try:
+            return [float(value[0]), float(value[1])]
+        except (ValueError, TypeError):
+            return None
+    if isinstance(value, str):
+        floats = re.findall(r'-?\d+\.?\d*', value)
+        if len(floats) >= 2:
+            return [float(floats[0]), float(floats[1])]
+    return None
+
+
 def evaluate_sample(prediction, ground_truth):
-    """Compare prediction against ground truth."""
     if prediction.get('parse_error'):
-        return {
+        result = {
             "action_match": False,
             "element_match": False,
             "value_match": False,
             "overall_match": False,
             "parse_error": True,
+            "coord_distance": None,
         }
+        for t in COORD_THRESHOLDS:
+            result[f"coord_{t}"] = False
+        return result
 
     action_match = prediction.get('ACTION') == ground_truth.get('ACTION')
-    element_match = str(prediction.get('MARK')) == str(ground_truth.get('MARK'))
+
+    gt_coord = parse_coordinate(ground_truth.get('COORDINATE'))
+    pred_coord = parse_coordinate(prediction.get('COORDINATE'))
+
+    coord_distance = None
+    if gt_coord is not None and pred_coord is not None:
+        coord_distance = math.sqrt(
+            (pred_coord[0] - gt_coord[0]) ** 2 +
+            (pred_coord[1] - gt_coord[1]) ** 2
+        )
+        element_match = coord_distance < 0.02  # primary: 2%
+    elif gt_coord is None and pred_coord is None:
+        element_match = True
+    else:
+        element_match = False
 
     value_match = True
     if ground_truth.get('ACTION') == 'TYPE':
@@ -181,21 +205,24 @@ def evaluate_sample(prediction, ground_truth):
 
     overall = action_match and element_match and value_match
 
-    return {
+    result = {
         "action_match": action_match,
         "element_match": element_match,
         "value_match": value_match,
         "overall_match": overall,
         "parse_error": False,
+        "coord_distance": coord_distance,
     }
+    for t in COORD_THRESHOLDS:
+        result[f"coord_{t}"] = (coord_distance is not None and coord_distance < t)
+
+    return result
 
 
 def evaluate_checkpoint(model, processor, val_data, max_samples=None):
-    """Evaluate a model on the val set with batched inference."""
     samples = val_data[:max_samples] if max_samples else val_data
     results = []
 
-    # Pre-load all valid samples
     valid_samples = []
     for i, sample in enumerate(samples):
         image_path = os.path.join(IMAGE_DIR, sample['image'])
@@ -205,11 +232,9 @@ def evaluate_checkpoint(model, processor, val_data, max_samples=None):
         try:
             ground_truth = json.loads(gt_text)
         except json.JSONDecodeError:
-            print(f"  Warning: Could not parse GT for sample {i}: {gt_text}")
             continue
 
         if not os.path.exists(image_path):
-            print(f"  Warning: Image not found: {image_path}")
             continue
 
         valid_samples.append({
@@ -221,7 +246,6 @@ def evaluate_checkpoint(model, processor, val_data, max_samples=None):
             "ground_truth": ground_truth,
         })
 
-    # Process in batches
     for batch_start in tqdm(range(0, len(valid_samples), BATCH_SIZE), desc="Evaluating"):
         batch = valid_samples[batch_start:batch_start + BATCH_SIZE]
 
@@ -231,15 +255,8 @@ def evaluate_checkpoint(model, processor, val_data, max_samples=None):
         try:
             responses = run_inference_batch(model, processor, images, instructions)
         except Exception as e:
-            print(f"  Warning: Batch inference failed: {e}, falling back to single inference")
-            responses = []
-            for img, inst in zip(images, instructions):
-                try:
-                    resp = run_inference_batch(model, processor, [img], [inst])
-                    responses.append(resp[0])
-                except Exception as e2:
-                    print(f"  Warning: Single inference failed: {e2}")
-                    responses.append("")
+            print(f"  Warning: Batch inference failed: {e}")
+            responses = [""] * len(batch)
 
         for sample_info, response in zip(batch, responses):
             prediction = parse_action(response)
@@ -267,22 +284,34 @@ def evaluate_checkpoint(model, processor, val_data, max_samples=None):
         "parse_error_rate": sum(r['parse_error'] for r in results) / total,
     }
 
+    # Coordinate-specific metrics
+    coord_results = [r for r in results if r.get('coord_distance') is not None]
+    if coord_results:
+        for t in COORD_THRESHOLDS:
+            metrics[f"coord_{t}_acc"] = sum(r[f"coord_{t}"] for r in results) / total
+        distances = [r['coord_distance'] for r in coord_results]
+        metrics["coord_mean_dist"] = sum(distances) / len(distances)
+        metrics["coord_median_dist"] = sorted(distances)[len(distances) // 2]
+
     return metrics, results
 
 
 def print_summary_table(all_metrics):
-    """Print a comparison table of all checkpoints."""
-    print("\n" + "=" * 90)
-    print(f"{'Checkpoint':<20} {'Total':>6} {'Action%':>8} {'Element%':>9} {'Value%':>8} {'Overall%':>9} {'ParseErr%':>10}")
-    print("=" * 90)
+    print("\n" + "=" * 110)
+    print(f"{'Checkpoint':<20} {'Total':>6} {'Action%':>8} {'Elem%':>7} {'Val%':>6} {'Over%':>7} {'1%':>6} {'2%':>6} {'5%':>6} {'MeanDist':>9}")
+    print("=" * 110)
 
-    sorted_metrics = sorted(all_metrics, key=lambda x: x['overall_acc'], reverse=True)
+    sorted_metrics = sorted(all_metrics, key=lambda x: x.get('overall_acc', 0), reverse=True)
 
     for m in sorted_metrics:
-        print(f"{m['checkpoint']:<20} {m['total']:>6} {m['action_acc']*100:>7.1f} {m['element_acc']*100:>8.1f} "
-              f"{m['value_acc']*100:>7.1f} {m['overall_acc']*100:>8.1f} {m['parse_error_rate']*100:>9.1f}")
+        c1 = m.get('coord_0.01_acc', 0) * 100
+        c2 = m.get('coord_0.02_acc', 0) * 100
+        c5 = m.get('coord_0.05_acc', 0) * 100
+        md = m.get('coord_mean_dist', 0)
+        print(f"{m['checkpoint']:<20} {m['total']:>6} {m['action_acc']*100:>7.1f} {m['element_acc']*100:>6.1f} "
+              f"{m['value_acc']*100:>5.1f} {m['overall_acc']*100:>6.1f} {c1:>5.1f} {c2:>5.1f} {c5:>5.1f} {md:>8.4f}")
 
-    print("=" * 90)
+    print("=" * 110)
     best = sorted_metrics[0]
     print(f"\nBest checkpoint: {best['checkpoint']} (Overall: {best['overall_acc']*100:.1f}%)")
 
@@ -290,23 +319,18 @@ def print_summary_table(all_metrics):
 def main():
     patch_pytorch()
 
-    # Init wandb
-    wandb.init(project="magma-word-som", name="eval-wordsom-on-mind2web", job_type="eval")
+    wandb.init(project="magma-word-coord", name="eval-coord-checkpoints", job_type="eval")
 
-    # Load val data
     print(f"Loading val data from: {VAL_JSON}")
     with open(VAL_JSON) as f:
         val_data = json.load(f)
     print(f"Val samples: {len(val_data)}")
 
-    # Find checkpoints: supports single checkpoint path or directory of checkpoints
     if os.path.basename(CHECKPOINT_DIR).startswith("checkpoint-"):
-        # Single checkpoint path
         checkpoints = [CHECKPOINT_DIR]
     else:
-        # Directory containing multiple checkpoints
         pattern = os.path.join(CHECKPOINT_DIR, "checkpoint-*")
-        checkpoints = sorted(glob.glob(pattern), key=lambda x: int(x.split("-")[-1]), reverse=True)
+        checkpoints = sorted(glob.glob(pattern), key=lambda x: int(x.split("-")[-1]))
     print(f"Found {len(checkpoints)} checkpoints: {[os.path.basename(c) for c in checkpoints]}")
 
     if INCLUDE_BASE:
@@ -314,7 +338,6 @@ def main():
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
-    # Load base model once
     print(f"\nLoading base model: {BASE_MODEL}")
     base_model, processor = load_base_model()
     print("Base model loaded!")
@@ -323,11 +346,9 @@ def main():
     start_time = time.time()
 
     for ckpt_path in checkpoints:
-        # Check if we need to rest
         elapsed_hours = (time.time() - start_time) / 3600
         if EVAL_HOURS > 0 and elapsed_hours >= EVAL_HOURS:
             print(f"\nRan for {elapsed_hours:.1f}h. Resting for {REST_MINUTES}min...")
-            # Save progress before resting
             summary_file = os.path.join(RESULTS_DIR, "summary.json")
             with open(summary_file, 'w') as f:
                 json.dump(all_metrics, f, indent=2)
@@ -340,7 +361,6 @@ def main():
         else:
             ckpt_name = os.path.basename(ckpt_path)
 
-        # Skip already evaluated checkpoints
         result_file = os.path.join(RESULTS_DIR, f"{ckpt_name}.json")
         if os.path.exists(result_file):
             print(f"\nSkipping {ckpt_name} (already evaluated)")
@@ -368,12 +388,17 @@ def main():
 
         print(f"\n{ckpt_name} Results:")
         print(f"  Action Accuracy:  {metrics['action_acc']*100:.1f}%")
-        print(f"  Element Accuracy: {metrics['element_acc']*100:.1f}%")
+        print(f"  Element Accuracy: {metrics['element_acc']*100:.1f}% (2% threshold)")
+        for t in COORD_THRESHOLDS:
+            key = f"coord_{t}_acc"
+            if key in metrics:
+                print(f"  Coord <{t*100:.0f}%:       {metrics[key]*100:.1f}%")
+        if 'coord_mean_dist' in metrics:
+            print(f"  Mean Distance:    {metrics['coord_mean_dist']:.4f}")
         print(f"  Value Accuracy:   {metrics['value_acc']*100:.1f}%")
         print(f"  Overall Accuracy: {metrics['overall_acc']*100:.1f}%")
         print(f"  Parse Error Rate: {metrics['parse_error_rate']*100:.1f}%")
 
-        # Log to wandb
         step = int(ckpt_name.split("-")[-1]) if ckpt_name != "base_model" else 0
         wandb.log({
             "eval/action_acc": metrics['action_acc'],
@@ -381,23 +406,20 @@ def main():
             "eval/value_acc": metrics['value_acc'],
             "eval/overall_acc": metrics['overall_acc'],
             "eval/parse_error_rate": metrics['parse_error_rate'],
+            **{f"eval/coord_{t}_acc": metrics.get(f"coord_{t}_acc", 0) for t in COORD_THRESHOLDS},
         }, step=step)
 
-        # Save per-checkpoint results
         with open(result_file, 'w') as f:
             json.dump({"metrics": metrics, "results": results}, f, indent=2)
         print(f"  Results saved to: {result_file}")
 
-        # Unload LoRA to free memory before next checkpoint
         if ckpt_path is not None:
             del model
             torch.cuda.empty_cache()
 
-    # Print comparison table
     if len(all_metrics) > 1:
         print_summary_table(all_metrics)
 
-    # Save summary
     summary_file = os.path.join(RESULTS_DIR, "summary.json")
     with open(summary_file, 'w') as f:
         json.dump(all_metrics, f, indent=2)
