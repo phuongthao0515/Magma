@@ -27,6 +27,7 @@ import sys
 import json
 import re
 import numpy as np
+import torch
 from ultralytics import YOLO
 from PIL import Image
 from tqdm import tqdm
@@ -35,34 +36,87 @@ from tqdm import tqdm
 WORD_JSONL = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_tasks.jsonl"
 WORD_MIND2WEB = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_mind2web_style.json"
 IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/office_images"
-OUTPUT_IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_images_som_dense_iou0.1"
-OUTPUT_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_mind2web_som_dense_iou0.1.json"
+OUTPUT_IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced"
+OUTPUT_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced.json"
 
 WEIGHTS_DIR = "/home/thaole/thao_le/Magma/weights"
 OMNIPARSER_MODEL_PATH = os.path.join(WEIGHTS_DIR, "icon_detect", "model.pt")
-BOX_THRESHOLD = 0.05
-MIN_BOX_AREA = 0.0  # No filtering - detect all elements
+BOX_THRESHOLD = 0.1
+MIN_BOX_AREA = 0.0
+OVERLAP_IOU_THRESHOLD = 0.7
 # =======================================
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, PROJECT_ROOT)
 
 from agents.ui_agent.util.som import MarkHelper, plot_boxes_with_marks
 
 
+def remove_overlap(boxes, iou_threshold):
+    """Remove overlapping boxes, keeping the smaller one.
+    Copied from utils.py to avoid OCR import at module level.
+    Input/output: tensor of shape (N, 4) in xyxy normalized format.
+    """
+    def box_area(box):
+        return (box[2] - box[0]) * (box[3] - box[1])
+
+    def intersection_area(box1, box2):
+        x1 = max(box1[0], box2[0])
+        y1 = max(box1[1], box2[1])
+        x2 = min(box1[2], box2[2])
+        y2 = min(box1[3], box2[3])
+        return max(0, x2 - x1) * max(0, y2 - y1)
+
+    def IoU(box1, box2):
+        intersection = intersection_area(box1, box2)
+        union = box_area(box1) + box_area(box2) - intersection + 1e-6
+        if box_area(box1) > 0 and box_area(box2) > 0:
+            ratio1 = intersection / box_area(box1)
+            ratio2 = intersection / box_area(box2)
+        else:
+            ratio1, ratio2 = 0, 0
+        return max(intersection / union, ratio1, ratio2)
+
+    boxes = boxes.tolist()
+    filtered = []
+    for i, box1 in enumerate(boxes):
+        is_valid = True
+        for j, box2 in enumerate(boxes):
+            if i != j and IoU(box1, box2) > iou_threshold and box_area(box1) > box_area(box2):
+                is_valid = False
+                break
+        if is_valid:
+            filtered.append(box1)
+    return torch.tensor(filtered) if filtered else torch.zeros(0, 4)
+
+
 def detect_ui_elements(image, yolo_model):
     """Detect UI elements with YOLO (OmniParser).
-    Filters out boxes smaller than MIN_BOX_AREA.
+    Applies overlap removal (keeps smaller box) and taskbar filter.
     Returns list of (y, x, h, w) normalized bboxes.
     """
     w, h = image.size
     result = yolo_model.predict(source=image, conf=BOX_THRESHOLD, iou=0.1, verbose=False)
+
+    raw_boxes = result[0].boxes.xyxy
+    if len(raw_boxes) == 0:
+        return []
+
+    # Normalize to [0, 1]
+    xyxy_norm = raw_boxes / torch.Tensor([w, h, w, h]).to(raw_boxes.device)
+
+    # Remove overlapping boxes (keep smaller box when IoU > threshold)
+    xyxy_norm = remove_overlap(xyxy_norm, iou_threshold=OVERLAP_IOU_THRESHOLD)
+
+    # Convert xyxy -> (y, x, h, w), apply area filter and taskbar filter
     bboxes = []
-    for box in result[0].boxes.xyxy:
-        x1, y1, x2, y2 = box.tolist()
-        bh, bw = (y2 - y1) / h, (x2 - x1) / w
+    for box in xyxy_norm.tolist():
+        x1, y1, x2, y2 = box
+        bh, bw = y2 - y1, x2 - x1
         if bh * bw >= MIN_BOX_AREA:
-            bboxes.append((y1 / h, x1 / w, bh, bw))
+            center_y = (y1 + y2) / 2
+            if center_y <= 0.96:  # Filter taskbar
+                bboxes.append((y1, x1, bh, bw))
     return bboxes
 
 
@@ -153,24 +207,24 @@ def main():
     print("\nLoading YOLO (OmniParser)...")
     yolo_model = YOLO(OMNIPARSER_MODEL_PATH)
     mark_helper = MarkHelper()
-    mark_helper.min_font_size = 10
-    mark_helper.max_font_size = 14
+    mark_helper.min_font_size = 16
+    mark_helper.max_font_size = 20
     os.makedirs(OUTPUT_IMAGE_DIR, exist_ok=True)
 
     # Step 4: Process images and fill MARK
     image_cache = {}  # image_name -> (bboxes, som_image_name)
     output_data = []
+    all_distances = []  # Track match distances for quality measurement
     stats = {
         "total": 0,
         "matched_inside": 0,
         "matched_nearest": 0,
         "no_coords": 0,
         "no_elements": 0,
-        "too_far": 0,
         "mark_not_needed": 0,
     }
 
-    for sample in tqdm(samples, desc="Processing"):
+    for idx, sample in enumerate(tqdm(samples, desc="Processing")):
         stats["total"] += 1
         image_name = sample["image"]
         action = json.loads(sample["conversations"][1]["value"])
@@ -181,8 +235,17 @@ def main():
             bboxes, som_image_name = image_cache[image_name]
         else:
             image_path = os.path.join(IMAGE_DIR, image_name)
-            image = Image.open(image_path).convert("RGB")
-            bboxes = detect_ui_elements(image, yolo_model)
+            if not os.path.exists(image_path):
+                stats["no_elements"] += 1
+                image_cache[image_name] = ([], f"word_som_{image_name}")
+                continue
+            try:
+                image = Image.open(image_path).convert("RGB")
+                bboxes = detect_ui_elements(image, yolo_model)
+            except Exception as e:
+                print(f"  WARNING: Failed on {image_name}: {e}")
+                image_cache[image_name] = ([], f"word_som_{image_name}")
+                continue
 
             som_image_name = f"word_som_{image_name}"
             if bboxes:
@@ -214,14 +277,12 @@ def main():
             if coords:
                 mark_id, distance = match_click_to_mark(coords[0], coords[1], bboxes)
                 if mark_id is not None:
+                    all_distances.append(distance)
                     if distance == 0.0:
                         stats["matched_inside"] += 1
-                        mark = mark_id
-                    elif distance < 0.05:
-                        stats["matched_nearest"] += 1
-                        mark = mark_id
                     else:
-                        stats["too_far"] += 1
+                        stats["matched_nearest"] += 1
+                    mark = mark_id
             else:
                 stats["no_coords"] += 1
         else:
@@ -238,6 +299,12 @@ def main():
             ],
         })
 
+        # Periodic save every 1000 samples
+        if (idx + 1) % 1000 == 0:
+            print(f"\n  Checkpoint: saving {len(output_data)} samples...")
+            with open(OUTPUT_JSON, "w") as f:
+                json.dump(output_data, f, indent=2, ensure_ascii=False)
+
     # Save
     print(f"\nWriting: {OUTPUT_JSON}")
     with open(OUTPUT_JSON, "w") as f:
@@ -248,7 +315,6 @@ def main():
     print(f"  Total samples:             {stats['total']}")
     print(f"  Matched inside bbox:       {stats['matched_inside']}")
     print(f"  Matched nearest (<5%):     {stats['matched_nearest']}")
-    print(f"  Too far from any bbox:     {stats['too_far']}")
     print(f"  No coordinates available:  {stats['no_coords']}")
     print(f"  No elements detected:      {stats['no_elements']}")
     print(f"  MARK not needed (action):  {stats['mark_not_needed']}")
@@ -256,6 +322,13 @@ def main():
     if image_cache:
         avg = np.mean([len(v[0]) for v in image_cache.values()])
         print(f"  Avg elements per image:    {avg:.1f}")
+    if all_distances:
+        print(f"  Match distance stats:")
+        print(f"    Mean:   {np.mean(all_distances):.4f}")
+        print(f"    Median: {np.median(all_distances):.4f}")
+        print(f"    <1%:    {100*sum(1 for d in all_distances if d < 0.01)/len(all_distances):.1f}%")
+        print(f"    <2%:    {100*sum(1 for d in all_distances if d < 0.02)/len(all_distances):.1f}%")
+        print(f"    <5%:    {100*sum(1 for d in all_distances if d < 0.05)/len(all_distances):.1f}%")
     print(f"  SoM images: {OUTPUT_IMAGE_DIR}")
     print(f"  JSON: {OUTPUT_JSON}")
     print(f"{'=' * 60}")
