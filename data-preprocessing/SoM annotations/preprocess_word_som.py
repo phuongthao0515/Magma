@@ -36,8 +36,8 @@ from tqdm import tqdm
 WORD_JSONL = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_tasks.jsonl"
 WORD_MIND2WEB = "/home/thaole/thao_le/Magma/datasets/agentnet/word/word_mind2web_style.json"
 IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/office_images"
-OUTPUT_IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced"
-OUTPUT_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced.json"
+OUTPUT_IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100"
+OUTPUT_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced_100.json"
 
 WEIGHTS_DIR = "/home/thaole/thao_le/Magma/weights"
 OMNIPARSER_MODEL_PATH = os.path.join(WEIGHTS_DIR, "icon_detect", "model.pt")
@@ -115,7 +115,7 @@ def detect_ui_elements(image, yolo_model):
         bh, bw = y2 - y1, x2 - x1
         if bh * bw >= MIN_BOX_AREA:
             center_y = (y1 + y2) / 2
-            if center_y <= 0.96:  # Filter taskbar
+            if center_y <= 0.93:  # Filter taskbar
                 bboxes.append((y1, x1, bh, bw))
     return bboxes
 
@@ -207,8 +207,8 @@ def main():
     print("\nLoading YOLO (OmniParser)...")
     yolo_model = YOLO(OMNIPARSER_MODEL_PATH)
     mark_helper = MarkHelper()
-    mark_helper.min_font_size = 16
-    mark_helper.max_font_size = 20
+    mark_helper.min_font_size = 12
+    mark_helper.max_font_size = 14
     os.makedirs(OUTPUT_IMAGE_DIR, exist_ok=True)
 
     # Step 4: Process images and fill MARK
