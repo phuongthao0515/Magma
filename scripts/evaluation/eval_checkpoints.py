@@ -22,10 +22,10 @@ import wandb
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-reduced-qlora/"
-VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/val.json"
-IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced"
-RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_reduced_eval"
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-reduced-100-r32-a64-lr5e5/"
+VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100/val.json"
+IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100"
+RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_reduced_100_r32_a64_lr5e5_eval"
 MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
 BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
 INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
@@ -291,7 +291,7 @@ def main():
     patch_pytorch()
 
     # Init wandb
-    wandb.init(project="magma-word-som", name="eval-wordsom-on-mind2web", job_type="eval")
+    wandb.init(project="magma-word-som", name="eval-som-reduced-100-r32-a64-lr5e5", job_type="eval")
 
     # Load val data
     print(f"Loading val data from: {VAL_JSON}")
