@@ -1,0 +1,12 @@
+# Word SoM Reduced Dataset Configuration
+# ~60-90 marks per image (overlap removed, taskbar filtered, dense >150 removed)
+
+DATA_PATH:
+  - "datasets/agentnet/word/som-reduced/train.json"
+IMAGE_FOLDER:
+  - "datasets/agentnet/word/som-reduced"
+
+DATA_PATH_VAL:
+  - "datasets/agentnet/word/som-reduced/val.json"
+IMAGE_FOLDER_VAL:
+  - "datasets/agentnet/word/som-reduced"

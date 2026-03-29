@@ -1,0 +1,12 @@
+# Word SoM Dataset Configuration (AgentNet Word tasks, Windows only)
+
+DATA_PATH:
+  - "datasets/agentnet/word/word_train.json"
+IMAGE_FOLDER:
+  - "datasets/agentnet/word/word_images_som_dense_iou0.1"
+
+# Validation data
+DATA_PATH_VAL:
+  - "datasets/agentnet/word/word_val.json"
+IMAGE_FOLDER_VAL:
+  - "datasets/agentnet/word/word_images_som_dense_iou0.1"

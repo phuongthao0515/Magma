@@ -1,0 +1,36 @@
+# Word Dataset Configuration — All Modes
+# Select mode via run.sh --data <mode>
+#
+# Modes:
+#   som-dense:       ~200 marks, original dense detection
+#   som-reduced:     ~60-90 marks, overlap removed, >150 filtered
+#   som-reduced-100: ~60-90 marks, overlap removed, >100 filtered, smaller font
+#   coordinate:      raw screenshots, coordinate prediction (no SoM)
+
+# ===== som-dense =====
+som-dense:
+  DATA_PATH: "datasets/agentnet/word/som-dense/train.json"
+  IMAGE_FOLDER: "datasets/agentnet/word/word_images_som_dense_iou0.1"
+  DATA_PATH_VAL: "datasets/agentnet/word/som-dense/val.json"
+  IMAGE_FOLDER_VAL: "datasets/agentnet/word/word_images_som_dense_iou0.1"
+
+# ===== som-reduced =====
+som-reduced:
+  DATA_PATH: "datasets/agentnet/word/som-reduced/train.json"
+  IMAGE_FOLDER: "datasets/agentnet/word/som-reduced"
+  DATA_PATH_VAL: "datasets/agentnet/word/som-reduced/val.json"
+  IMAGE_FOLDER_VAL: "datasets/agentnet/word/som-reduced"
+
+# ===== som-reduced-100 =====
+som-reduced-100:
+  DATA_PATH: "datasets/agentnet/word/som-reduced-100/train.json"
+  IMAGE_FOLDER: "datasets/agentnet/word/som-reduced-100"
+  DATA_PATH_VAL: "datasets/agentnet/word/som-reduced-100/val.json"
+  IMAGE_FOLDER_VAL: "datasets/agentnet/word/som-reduced-100"
+
+# ===== coordinate =====
+coordinate:
+  DATA_PATH: "datasets/agentnet/word/word_coord_train.json"
+  IMAGE_FOLDER: "datasets/agentnet/office_images"
+  DATA_PATH_VAL: "datasets/agentnet/word/word_coord_val.json"
+  IMAGE_FOLDER_VAL: "datasets/agentnet/office_images"
