@@ -13,9 +13,9 @@ import json
 import random
 
 SEED = 42
-INPUT = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced.json"
-TRAIN_OUT = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/train.json"
-VAL_OUT = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/val.json"
+INPUT = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced_100.json"
+TRAIN_OUT = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100/train.json"
+VAL_OUT = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100/val.json"
 SPLIT_RATIO = 0.8
 
 
