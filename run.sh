@@ -8,13 +8,13 @@
 #   bash run.sh --from-mind2web --cycle  # both flags
 
 TRAIN_HOURS=3
-REST_HOURS=1
+REST_HOURS=2
 CYCLE_MODE=false
 
 # Default: train from original Magma-8B
 BASE_MODEL="microsoft/Magma-8B"
-OUTPUT_DIR="./checkpoints/finetune-word-coord-qlora"
-RUN_NAME="word-coord-qlora"
+OUTPUT_DIR="./checkpoints/finetune-word-som-reduced-100-r32-a64-lr5e5"
+RUN_NAME="word-som-reduced-100-r32-a64-lr5e5"
 
 # Parse flags
 for arg in "$@"; do
@@ -44,22 +44,22 @@ run_training() {
 
 TRAIN_ARGS=(
     --model_name_or_path $BASE_MODEL
-    --data_path "data_configs/word_coordinate.yaml"
+    --data_path "data_configs/word_som_reduced_100.yaml"
     --output_dir $OUTPUT_DIR
     --is_multimodal True
     --bf16 True
     --num_train_epochs 1
     --per_device_train_batch_size 1
     --gradient_accumulation_steps 4
-    --learning_rate 1e-4
+    --learning_rate 5e-5
     --save_steps 100
     --logging_steps 10
     --evaluation_strategy no
     --gradient_checkpointing True
     --bits 4
     --lora_enable True
-    --lora_r 64
-    --lora_alpha 16
+    --lora_r 32
+    --lora_alpha 64
     --tune_mm_mlp_adapter True
     --img_size 768
     --report_to wandb
