@@ -10,9 +10,9 @@ Usage:
 import json
 import os
 
-JSON_PATH = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced.json"
-IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced"
-MAX_MARKS = 150
+JSON_PATH = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced/word_som_reduced_100.json"
+IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100"
+MAX_MARKS = 100
 
 
 def main():
