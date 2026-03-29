@@ -1,0 +1,8 @@
+DATA_PATH:
+  - "datasets/agentnet/word/som-reduced-100/train.json"
+IMAGE_FOLDER:
+  - "datasets/agentnet/word/som-reduced-100"
+DATA_PATH_VAL:
+  - "datasets/agentnet/word/som-reduced-100/val.json"
+IMAGE_FOLDER_VAL:
+  - "datasets/agentnet/word/som-reduced-100"

@@ -1,0 +1,12 @@
+# Word Coordinate Dataset Configuration
+# Uses raw screenshots (no SoM) with coordinate-based grounding
+
+DATA_PATH:
+  - "datasets/agentnet/word/word_coord_train.json"
+IMAGE_FOLDER:
+  - "datasets/agentnet/office_images"
+
+DATA_PATH_VAL:
+  - "datasets/agentnet/word/word_coord_val.json"
+IMAGE_FOLDER_VAL:
+  - "datasets/agentnet/office_images"
