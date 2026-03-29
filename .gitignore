@@ -175,6 +175,7 @@ models/
 weights/
 results/
 results_*/
+research/
 wandb/
 agents/ui_agent/weights
 Miniconda3-*.sh
