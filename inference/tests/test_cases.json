@@ -1,0 +1,49 @@
+[
+  {
+    "image": "/home/thaole/thao_le/Magma/inference/tests/screenshots/input.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/input.png",
+    "num_marks": 56,
+    "prompts": [
+      {
+        "prompt": "Click on the 'File' menu to access the backstage view for saving.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 0,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click on the the align text",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 0,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'X' button in the top right corner to close the application.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 0,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click on the 'Layout' tab in the ribbon to access page setup options.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 0,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'Insert' tab to view the options for adding objects like tables and pictures.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 0,
+          "VALUE": "None"
+        }
+      }
+    ]
+  }
+]
