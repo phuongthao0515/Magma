@@ -815,6 +815,12 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                         action_accuracy = action_accuracy[action_accuracy != 0]
                         log_dict["action_accuracy"] = action_accuracy.mean().item()
                     wandb.log(log_dict)
+            else:
+                # Single GPU — log focal loss components directly
+                wandb.log({
+                    **focal_loss_info,
+                    "action_accuracy": action_accuracy.item(),
+                })
         else:
             logits = self.language_model.lm_head(hidden_states)
             logits = logits.float()
