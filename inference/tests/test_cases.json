@@ -1,22 +1,23 @@
 [
   {
-    "image": "/home/thaole/thao_le/Magma/inference/tests/screenshots/input.png",
-    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/input.png",
+    "test_folder": "test0",
+    "image": "/home/thaole/thao_le/Magma/inference/tests/testcase/test0/input_0.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/test0.png",
     "num_marks": 56,
     "prompts": [
       {
-        "prompt": "Click on the 'File' menu to access the backstage view for saving.",
+        "prompt": "Click on the landscape icon to change the document orientation.",
         "expected": {
           "ACTION": "CLICK",
-          "MARK": 0,
+          "MARK": 26,
           "VALUE": "None"
         }
       },
       {
-        "prompt": "Click on the the align text",
+        "prompt": "Click on the align text",
         "expected": {
           "ACTION": "CLICK",
-          "MARK": 0,
+          "MARK": 19,
           "VALUE": "None"
         }
       },
@@ -24,7 +25,7 @@
         "prompt": "Click the 'X' button in the top right corner to close the application.",
         "expected": {
           "ACTION": "CLICK",
-          "MARK": 0,
+          "MARK": 24,
           "VALUE": "None"
         }
       },
@@ -32,16 +33,312 @@
         "prompt": "Click on the 'Layout' tab in the ribbon to access page setup options.",
         "expected": {
           "ACTION": "CLICK",
+          "MARK": 3,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'References' tab to view the options for adding objects like tables and pictures.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 18,
+          "VALUE": "None"
+        }
+      }
+    ]
+  },
+  {
+    "test_folder": "test1",
+    "image": "/home/thaole/thao_le/Magma/inference/tests/testcase/test1/input_1.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/test1.png",
+    "num_marks": 100,
+    "prompts": [
+      {
+        "prompt": "Click the 'Pictures' button in the Illustrations group to insert an image",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 23,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the 'Insert' tab to access options like 'Customize the Ribbon'.",
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 28,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'Table' button to open the grid for inserting a new table.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 18,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the 'Equation' button." ,
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 15,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the 'Shapes' button in the Illustrations group to see options like adding it to the Quick Access Toolbar.",
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 14,
+          "VALUE": "None"
+        }
+      }
+    ]
+  },
+  {
+    "test_folder": "test2",
+    "image": "/home/thaole/thao_le/Magma/inference/tests/testcase/test2/input_2.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/test2.png",
+    "num_marks": 100,
+    "prompts": [
+      {
+        "prompt": "Click on 'Red Orange' in the open Colors dropdown menu to apply that color scheme.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 91,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'Page Borders' in the Page Background.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 11,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'Watermark' button in the Page Background group to add a watermark to the document.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 5,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'Themes' button on the far left of the Design ribbon to browse overall document themes.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 4,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Double-click the top title bar where it says 'Document1 - Word' to toggle the window size.",
+        "expected": {
+          "ACTION": "DOUBLE_CLICK",
+          "MARK": 72,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the 'Page Borders' button on the ribbon to access the option to add it to the Quick Access Toolbar.",
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 11,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Type 'change theme colors' into the Search bar at the top center of the application window.",
+        "expected": {
+          "ACTION": "TYPE",
+          "MARK": 16,
+          "VALUE": "change theme colors"
+        }
+      }
+    ]
+  },
+  {
+    "test_folder": "test3",
+    "image": "/home/thaole/thao_le/Magma/inference/tests/testcase/test3/input_3.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/test3.png",
+    "num_marks": 100,
+    "prompts": [
+      {
+        "prompt": "Click the size option to open the dropdown and increase the size",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 11,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Type 'replace text' into the Search box located at the top center of the application window.",
+        "expected": {
+          "ACTION": "TYPE",
+          "MARK": 42,
+          "VALUE": "replace text"
+        }
+      },
+      {
+        "prompt": "Click the 'Paste' option in the Clipboard group on the left side of the ribbon.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 26,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'B' (Bold) icon in the Font group on the ribbon to format the currently active text.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 47,
+          "VALUE": "None"
+        }
+      }
+    ]
+  },
+  {
+    "test_folder": "test4",
+    "image": "/home/thaole/thao_le/Magma/inference/tests/testcase/test4/input_4.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/test4.png",
+    "num_marks": 100,
+    "prompts": [
+      {
+        "prompt": "Click the 'Shape Fill' dropdown in the Shape Styles group to change the background color of the selected text box.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 15,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "In the left section, change the number '01' in the text box to '9'",
+        "expected": {
+          "ACTION": "TYPE",
+          "MARK": 85,
+          "VALUE": "9"
+        }
+      },
+      {
+        "prompt": "Click the 'Alt Text' button in the Accessibility group on the ribbon to add a description to the shape.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 39,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the up arrow next to the height measurement ('1.88 cm') in the Size group to increase the height of the shape.",
+        "expected": {
+          "ACTION": "CLICK",
           "MARK": 0,
           "VALUE": "None"
         }
       },
       {
-        "prompt": "Click the 'Insert' tab to view the options for adding objects like tables and pictures.",
+        "prompt": "Double-click the text in the '02' section to select it",
+        "expected": {
+          "ACTION": "DOUBLE_CLICK",
+          "MARK": 63,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the 'Shape Effects' button in the Shape Styles group to view ribbon customization options.",
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 6,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Type '5 cm' into the width measurement box in the Size group (currently displaying '4.65 cm').",
+        "expected": {
+          "ACTION": "TYPE",
+          "MARK": 9,
+          "VALUE": "5 cm"
+        }
+      }
+    ]
+  },
+  {
+    "test_folder": "test5",
+    "image": "/home/thaole/thao_le/Magma/inference/tests/testcase/test5/input_5.png",
+    "annotated_image": "/home/thaole/thao_le/Magma/inference/tests/annotated/test5.png",
+    "num_marks": 100,
+    "prompts": [
+      {
+        "prompt": "Click on 'Heading 5' within the expanded Styles gallery to apply it to the currently selected text.",
         "expected": {
           "ACTION": "CLICK",
-          "MARK": 0,
+          "MARK": 80,
           "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Type 'Important: ' directly into the document to replace the sentence \"Table of Contents\".",
+        "expected": {
+          "ACTION": "TYPE",
+          "MARK": 84,
+          "VALUE": "Important: "
+        }
+      },
+      {
+        "prompt": "Click on 'Subtitle' in the Styles menu to apply the subtitle style to the selected text.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 13,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Click the 'Center' alignment button in the Paragraph group on the ribbon to center the selected text.",
+        "expected": {
+          "ACTION": "CLICK",
+          "MARK": 28,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Double-click the text 'Heading 2' to select it.",
+        "expected": {
+          "ACTION": "DOUBLE_CLICK",
+          "MARK": 91,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Double-click the 'Format Painter' icon (the paintbrush) in the Clipboard group on the far left of the ribbon to lock it on.",
+        "expected": {
+          "ACTION": "DOUBLE_CLICK",
+          "MARK": 38,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the highlighted text \"Heading 2\" to open the mini toolbar and text context menu.",
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 91,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Right-click the 'Heading 5' style block in the open gallery to access options like 'Modify...' or 'Update to Match Selection'.",
+        "expected": {
+          "ACTION": "RIGHT_CLICK",
+          "MARK": 80,
+          "VALUE": "None"
+        }
+      },
+      {
+        "prompt": "Type 'update table of contents' into the Search box located at the top center of the application window.",
+        "expected": {
+          "ACTION": "TYPE",
+          "MARK": 50,
+          "VALUE": "update table of contents"
         }
       }
     ]
