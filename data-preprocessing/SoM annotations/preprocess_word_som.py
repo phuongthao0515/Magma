@@ -90,13 +90,22 @@ def remove_overlap(boxes, iou_threshold):
     return torch.tensor(filtered) if filtered else torch.zeros(0, 4)
 
 
-def detect_ui_elements(image, yolo_model):
+def detect_ui_elements(image, yolo_model, box_threshold=None, overlap_iou_threshold=None, min_box_area=None):
     """Detect UI elements with YOLO (OmniParser).
     Applies overlap removal (keeps smaller box) and taskbar filter.
     Returns list of (y, x, h, w) normalized bboxes.
+
+    Args:
+        box_threshold: YOLO confidence threshold (default: module BOX_THRESHOLD=0.1)
+        overlap_iou_threshold: IoU threshold for overlap removal (default: module OVERLAP_IOU_THRESHOLD=0.7)
+        min_box_area: minimum normalized box area to keep (default: module MIN_BOX_AREA=0.0)
     """
+    _box_threshold = box_threshold if box_threshold is not None else BOX_THRESHOLD
+    _overlap_iou = overlap_iou_threshold if overlap_iou_threshold is not None else OVERLAP_IOU_THRESHOLD
+    _min_area = min_box_area if min_box_area is not None else MIN_BOX_AREA
+
     w, h = image.size
-    result = yolo_model.predict(source=image, conf=BOX_THRESHOLD, iou=0.1, verbose=False)
+    result = yolo_model.predict(source=image, conf=_box_threshold, iou=0.1, verbose=False)
 
     raw_boxes = result[0].boxes.xyxy
     if len(raw_boxes) == 0:
@@ -106,14 +115,14 @@ def detect_ui_elements(image, yolo_model):
     xyxy_norm = raw_boxes / torch.Tensor([w, h, w, h]).to(raw_boxes.device)
 
     # Remove overlapping boxes (keep smaller box when IoU > threshold)
-    xyxy_norm = remove_overlap(xyxy_norm, iou_threshold=OVERLAP_IOU_THRESHOLD)
+    xyxy_norm = remove_overlap(xyxy_norm, iou_threshold=_overlap_iou)
 
     # Convert xyxy -> (y, x, h, w), apply area filter and taskbar filter
     bboxes = []
     for box in xyxy_norm.tolist():
         x1, y1, x2, y2 = box
         bh, bw = y2 - y1, x2 - x1
-        if bh * bw >= MIN_BOX_AREA:
+        if bh * bw >= _min_area:
             center_y = (y1 + y2) / 2
             if center_y <= 0.93:  # Filter taskbar
                 bboxes.append((y1, x1, bh, bw))
