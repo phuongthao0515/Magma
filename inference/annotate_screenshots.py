@@ -1,11 +1,19 @@
 """
-Step 1: Run OmniParser on screenshots to generate SoM annotated images.
+Run OmniParser on test case screenshots to generate SoM annotated images.
 
-After running this, manually inspect the annotated images to fill in expected
-MARK IDs in the test cases JSON.
+Reads from testcase/ folder structure:
+    testcase/
+      test0/ -> input_0.png + prompt_1.txt, prompt_2.txt, ...
+      test1/ -> input_1.png + prompt_1.txt, prompt_2.txt, ...
+      ...
+
+Outputs:
+    annotated/ -> SoM annotated images + marks_info.json
+    test_cases.json -> all images + prompts ready for evaluation
 
 Usage:
-    python /home/thaole/thao_le/Magma/inference/annotate_screenshots.py
+    cd /home/thaole/thao_le/Magma
+    python inference/annotate_screenshots.py
 """
 
 import json
@@ -17,16 +25,15 @@ from ultralytics import YOLO
 
 # ============ CONFIGURATION ============
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
-INPUT_DIR = "/home/thaole/thao_le/Magma/inference/tests/screenshots"
-PROMPTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/prompts"
+TESTCASE_DIR = "/home/thaole/thao_le/Magma/inference/tests/testcase"
 OUTPUT_DIR = "/home/thaole/thao_le/Magma/inference/tests/annotated"
 TEST_CASES_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases.json"
 OMNIPARSER_MODEL_PATH = "/home/thaole/thao_le/Magma/weights/icon_detect/model.pt"
 
-# OmniParser params — override these for denser/sparser detection
-BOX_THRESHOLD = 0.1        # YOLO confidence (lower = more detections)
-OVERLAP_IOU = 0.7          # overlap removal (lower = keep more boxes)
-MAX_MARKS = 100            # cap mark count
+# OmniParser params
+BOX_THRESHOLD = 0.1
+OVERLAP_IOU = 0.7
+MAX_MARKS = 100
 MARK_FONT_MIN = 12
 MARK_FONT_MAX = 14
 # =======================================
@@ -85,25 +92,41 @@ def main():
     print(f"Loading YOLO model: {OMNIPARSER_MODEL_PATH}")
     yolo_model = YOLO(OMNIPARSER_MODEL_PATH)
 
-    extensions = (".png", ".jpg", ".jpeg", ".bmp")
-    images = sorted([
-        f for f in os.listdir(INPUT_DIR)
-        if f.lower().endswith(extensions)
+    # Scan testcase/ folder for test subfolders
+    test_folders = sorted([
+        d for d in os.listdir(TESTCASE_DIR)
+        if os.path.isdir(os.path.join(TESTCASE_DIR, d))
     ])
-    print(f"Found {len(images)} screenshots in {INPUT_DIR}")
+    print(f"Found {len(test_folders)} test folders in {TESTCASE_DIR}")
     print(f"Params: box_threshold={BOX_THRESHOLD}, overlap_iou={OVERLAP_IOU}, max_marks={MAX_MARKS}")
 
     all_marks_info = {}
+    template = []
+    total_prompts = 0
 
-    for img_name in images:
-        img_path = os.path.join(INPUT_DIR, img_name)
-        print(f"\n  Processing: {img_name}")
+    for folder_name in test_folders:
+        folder_path = os.path.join(TESTCASE_DIR, folder_name)
 
+        # Find the image in this folder
+        extensions = (".png", ".jpg", ".jpeg", ".bmp")
+        images = [f for f in os.listdir(folder_path) if f.lower().endswith(extensions)]
+        if not images:
+            print(f"  WARNING: no image found in {folder_name}, skipping")
+            continue
+        img_name = images[0]
+        img_path = os.path.join(folder_path, img_name)
+
+        print(f"\n  [{folder_name}] {img_name}")
+
+        # Annotate
         annotated, mark_to_center, num_marks = annotate_single(img_path, yolo_model)
         print(f"    Marks: {num_marks}")
 
-        annotated.save(os.path.join(OUTPUT_DIR, img_name))
+        # Save annotated image (use folder name as filename for clarity)
+        annotated_name = f"{folder_name}.png"
+        annotated.save(os.path.join(OUTPUT_DIR, annotated_name))
 
+        # Save marks info
         serializable = {}
         for mark_id, info in mark_to_center.items():
             serializable[str(mark_id)] = {
@@ -111,59 +134,55 @@ def main():
                 "center_y": info["center"][1],
                 "bbox": list(info["bbox"]),
             }
-        all_marks_info[img_name] = {
+        all_marks_info[annotated_name] = {
             "num_marks": num_marks,
             "marks": serializable,
         }
 
-    # Save mark coordinate mapping
+        # Read prompts from the same folder
+        prompt_files = sorted([
+            f for f in os.listdir(folder_path)
+            if f.startswith("prompt") and f.endswith(".txt")
+        ])
+        prompts_list = []
+        for pf in prompt_files:
+            with open(os.path.join(folder_path, pf)) as f:
+                prompt_text = f.read().strip()
+            if prompt_text:
+                prompts_list.append({
+                    "prompt": prompt_text,
+                    "expected": {"ACTION": "CLICK", "MARK": 0, "VALUE": "None"},
+                })
+
+        total_prompts += len(prompts_list)
+        print(f"    Prompts: {len(prompts_list)}")
+
+        template.append({
+            "test_folder": folder_name,
+            "image": img_path,
+            "annotated_image": os.path.join(OUTPUT_DIR, annotated_name),
+            "num_marks": num_marks,
+            "prompts": prompts_list,
+        })
+
+    # Save marks info
     marks_json_path = os.path.join(OUTPUT_DIR, "marks_info.json")
     with open(marks_json_path, "w") as f:
         json.dump(all_marks_info, f, indent=2)
 
-    # Read prompts from PROMPTS_DIR and generate test cases
-    template = []
-    for img_name in images:
-        img_stem = os.path.splitext(img_name)[0]
-        prompts_list = []
-
-        # Find prompt folder matching this image (folder name contains image stem)
-        for folder_name in sorted(os.listdir(PROMPTS_DIR)):
-            folder_path = os.path.join(PROMPTS_DIR, folder_name)
-            if os.path.isdir(folder_path) and img_stem in folder_name:
-                prompt_files = sorted(f for f in os.listdir(folder_path) if f.endswith(".txt"))
-                for pf in prompt_files:
-                    with open(os.path.join(folder_path, pf)) as f:
-                        prompt_text = f.read().strip()
-                    if prompt_text:
-                        prompts_list.append({
-                            "prompt": prompt_text,
-                            "expected": {"ACTION": "CLICK", "MARK": 0, "VALUE": "None"},
-                        })
-                break
-
-        if not prompts_list:
-            print(f"  WARNING: no prompts found for {img_name} in {PROMPTS_DIR}")
-
-        template.append({
-            "image": os.path.join(INPUT_DIR, img_name),
-            "annotated_image": os.path.join(OUTPUT_DIR, img_name),
-            "num_marks": all_marks_info[img_name]["num_marks"],
-            "prompts": prompts_list,
-        })
-
-    test_cases_path = TEST_CASES_JSON
-    with open(test_cases_path, "w") as f:
+    # Save test cases
+    with open(TEST_CASES_JSON, "w") as f:
         json.dump(template, f, indent=2)
 
     print(f"\n{'='*60}")
+    print(f"Total: {len(test_folders)} images, {total_prompts} prompts")
     print(f"Annotated images: {OUTPUT_DIR}")
     print(f"Mark coordinates: {marks_json_path}")
-    print(f"Test cases:       {test_cases_path}")
+    print(f"Test cases:       {TEST_CASES_JSON}")
     print(f"")
     print(f"Next steps:")
     print(f"  1. Open annotated images to see mark numbers")
-    print(f"  2. Edit {test_cases_path} — fill in prompts + expected ACTION/MARK/VALUE")
+    print(f"  2. Edit {TEST_CASES_JSON} — fill in expected ACTION/MARK/VALUE")
     print(f"  3. Run: python /home/thaole/thao_le/Magma/inference/run_e2e.py")
     print(f"{'='*60}")
 

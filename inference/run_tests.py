@@ -20,7 +20,7 @@ from tqdm import tqdm
 # ============ CONFIGURATION ============
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-reduced-100-r32-a64-lr5e5/checkpoint-800"
+CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-4actions-r32-a64-maxlen2048/checkpoint-1700"
 IMG_SIZE = 768
 TEST_CASES_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases.json"
 RESULTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/results"
@@ -31,9 +31,10 @@ INSTRUCTION_TEMPLATE = (
     "MOVE, DRAG, SCROLL, HSCROLL, TYPE, PRESS, HOTKEY.\n\n"
     "Output format must be:\n"
     '{{\"ACTION\": action_type, \"MARK\": numeric_id, \"VALUE\": text_or_null}}\n\n'
-    "Task: {task_prompt}\n"
-    "For your convenience, I have labeled the candidates with numeric marks and "
-    "bounding boxes on the screenshot. What is the next action you would take?"
+    "Task: {task_prompt}\n\n"
+    "Previous actions:\nNone\n\n"
+    "For your convenience, UI elements are labeled with numeric marks.\n\n"
+    "What is the next action?\n"
 )
 # =======================================
 
@@ -249,7 +250,7 @@ def main():
         "results": all_results,
     }
 
-    results_path = os.path.join(RESULTS_DIR, "test_results.json")
+    results_path = os.path.join(RESULTS_DIR, "test_results_1700_4actions.json")
     with open(results_path, "w") as f:
         json.dump(output, f, indent=2)
     print(f"\nDetailed results saved to: {results_path}")
