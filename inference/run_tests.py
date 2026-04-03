@@ -20,7 +20,7 @@ from tqdm import tqdm
 # ============ CONFIGURATION ============
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-4actions-r32-a64-maxlen2048/checkpoint-1700"
+CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-4actions-r32-a64-maxlen2048-focal/checkpoint-3600"
 IMG_SIZE = 768
 TEST_CASES_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases.json"
 RESULTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/results"
@@ -150,9 +150,9 @@ def evaluate_sample(prediction, expected):
     action_match = prediction.get("ACTION") == expected.get("ACTION")
     element_match = str(prediction.get("MARK")) == str(expected.get("MARK"))
 
-    value_match = True
-    if expected.get("ACTION") == "TYPE":
-        value_match = prediction.get("VALUE") == expected.get("VALUE")
+    pred_value = str(prediction.get("VALUE", "")).strip()
+    exp_value = str(expected.get("VALUE", "")).strip()
+    value_match = pred_value == exp_value
 
     overall = action_match and element_match and value_match
 
@@ -229,16 +229,62 @@ def main():
         "parse_error_rate": sum(r["parse_error"] for r in all_results) / total,
     }
 
-    # Print summary
-    print(f"\n{'='*60}")
-    print(f"TEST RESULTS ({total} samples)")
-    print(f"{'='*60}")
+    # Per-image breakdown
+    print(f"\n{'='*80}")
+    print(f"PER-IMAGE BREAKDOWN")
+    print(f"{'='*80}")
+    print(f"{'Image':<10} {'Total':>6} {'Action':>10} {'Element':>10} {'Value':>10} {'Overall':>10}")
+    print(f"{'-'*80}")
+
+    per_image = {}
+    for tc in test_cases:
+        folder = tc["test_folder"]
+        img_results = [r for r in all_results if r["image"] == tc["image"]]
+        if not img_results:
+            continue
+        n = len(img_results)
+        act = sum(r["action_match"] for r in img_results)
+        elem = sum(r["element_match"] for r in img_results)
+        val = sum(r["value_match"] for r in img_results)
+        ovr = sum(r["overall_match"] for r in img_results)
+        per_image[folder] = {"total": n, "action": act, "element": elem, "value": val, "overall": ovr}
+        print(f"{folder:<10} {n:>6} {f'{act}/{n}':>10} {f'{elem}/{n}':>10} {f'{val}/{n}':>10} {f'{ovr}/{n}':>10}")
+
+    # Per-action-type breakdown
+    print(f"\n{'='*80}")
+    print(f"PER-ACTION-TYPE BREAKDOWN")
+    print(f"{'='*80}")
+    print(f"{'Action Type':<15} {'Count':>6} {'Act%':>7} {'Elem%':>7} {'Overall%':>9}")
+    print(f"{'-'*80}")
+
+    action_types = {}
+    for r in all_results:
+        atype = r["expected"].get("ACTION", "?")
+        if atype not in action_types:
+            action_types[atype] = {"total": 0, "action": 0, "element": 0, "overall": 0}
+        action_types[atype]["total"] += 1
+        action_types[atype]["action"] += r["action_match"]
+        action_types[atype]["element"] += r["element_match"]
+        action_types[atype]["overall"] += r["overall_match"]
+
+    for atype in sorted(action_types.keys()):
+        s = action_types[atype]
+        n = s["total"]
+        print(f"{atype:<15} {n:>6} {s['action']/n*100:>6.1f}% {s['element']/n*100:>6.1f}% {s['overall']/n*100:>8.1f}%")
+
+    # Print overall summary
+    total_pass = sum(r["overall_match"] for r in all_results)
+    total_fail = total - total_pass
+    print(f"\n{'='*80}")
+    print(f"OVERALL ({total} samples)")
+    print(f"{'='*80}")
+    print(f"  PASS: {total_pass}/{total}    FAIL: {total_fail}/{total}")
     print(f"  Action Accuracy:  {metrics['action_acc']*100:.1f}%")
     print(f"  Element Accuracy: {metrics['element_acc']*100:.1f}%")
     print(f"  Value Accuracy:   {metrics['value_acc']*100:.1f}%")
     print(f"  Overall Accuracy: {metrics['overall_acc']*100:.1f}%")
     print(f"  Parse Error Rate: {metrics['parse_error_rate']*100:.1f}%")
-    print(f"{'='*60}")
+    print(f"{'='*80}")
 
     # Save detailed results
     output = {
@@ -247,10 +293,12 @@ def main():
         "img_size": IMG_SIZE,
         "test_cases_json": TEST_CASES_JSON,
         "metrics": metrics,
+        "per_image": per_image,
+        "per_action_type": action_types,
         "results": all_results,
     }
 
-    results_path = os.path.join(RESULTS_DIR, "test_results_1700_4actions.json")
+    results_path = os.path.join(RESULTS_DIR, "test_results_focal_3600_v5.json")
     with open(results_path, "w") as f:
         json.dump(output, f, indent=2)
     print(f"\nDetailed results saved to: {results_path}")
