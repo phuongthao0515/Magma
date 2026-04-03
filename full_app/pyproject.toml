@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "ui-automation"
+version = "0.1.0"
+description = "Screenshot-based UI automation: FastAPI backend + PyAutoGUI agent"
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# Server
+fastapi = "^0.114.0"
+uvicorn = "^0.30.0"
+python-multipart = "^0.0.20"
+pydantic = "^2.9.2"
+httpx = "^0.27.0"
+python-dotenv = "^1.0.1"
+# Agent
+pyautogui = "^0.9.54"
+Pillow = "^10.4.0"
+# Model inference (Magma + OmniParser SoM)
+torch = "^2.0"
+numpy = "^1.24"
+transformers = {git = "https://github.com/jwyang/transformers.git", branch = "dev/jwyang-v4.48.2"}
+peft = ">=0.10"
+accelerate = ">=0.26"
+bitsandbytes = ">=0.42"
+huggingface-hub = ">=0.20"
+ultralytics = ">=8.0"
+opencv-python-headless = ">=4.8"
+gdown = ">=5.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+pytest-asyncio = "^0.23.0"
+black = "^24.4.2"
+mypy = "^1.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
