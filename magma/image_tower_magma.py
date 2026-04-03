@@ -318,7 +318,7 @@ class D2CLIP_HF(nn.Module):
         out = {}
         x = self.clip_vision_model.trunk.stem(x)
         if gradient_checkpointing:
-            x = checkpoint.checkpoint(self.clip_vision_model.trunk.stages, x)
+            x = checkpoint.checkpoint(self.clip_vision_model.trunk.stages, x, use_reentrant=False)
         else:
             x = self.clip_vision_model.trunk.stages(x)
         out['clip_vis_dense'] = x

@@ -180,7 +180,7 @@ def get_mm_adapter_state(named_params, keys_to_match):
 def find_all_linear_names(model):
     cls = torch.nn.Linear
     lora_module_names = set()
-    multimodal_keywords = ['multi_modal_projector', 'vision_tower', 'vision_resampler']
+    multimodal_keywords = ['multi_modal_projector', 'vision_resampler']
     for name, module in model.named_modules():
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
@@ -488,6 +488,8 @@ def train():
             lora_dropout=training_args.lora_dropout,
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
+            rank_pattern={"fc1": 8, "fc2": 8},
+            alpha_pattern={"fc1": 16, "fc2": 16},
         )
         if training_args.bits == 16:
             if training_args.bf16:
@@ -509,7 +511,10 @@ def train():
 
     if model_args.tune_vision_tokenizer == "none":
         for name, p in model.vision_tower.named_parameters():
-            p.requires_grad = False
+            if 'lora_' not in name:
+                p.requires_grad = False
+            else:
+                p.requires_grad = True
 
     total_params = get_model_param_count(model, trainable_only=True)
     rank0_print(f"Total trainable parameters: {total_params}")
