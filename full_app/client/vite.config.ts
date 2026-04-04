@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [TanStackRouterVite({}), react(), tailwindcss()],
   server: {
     port: 4000,
+    host: "0.0.0.0",
     proxy: {
       "/api": {
         target: "http://localhost:8000",

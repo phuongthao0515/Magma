@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from enum import Enum
+    class StrEnum(str, Enum):
+        pass
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -66,7 +71,7 @@ class TaskDAO(BaseModel):
     prompt: str
     status: TaskStatus = TaskStatus.PENDING
     current_step: int = 0
-    max_steps: int = 20
+    max_steps: int = 1
     actions_history: list[ActionDAO] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

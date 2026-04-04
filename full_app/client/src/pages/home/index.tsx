@@ -34,7 +34,7 @@ const ActionLogCard = styled(Card)`
 
 export const HomePage: FC = () => {
   const [prompt, setPrompt] = useState("");
-  const { isRunning, stepLogs, activeTaskId, startTask, stopTask } =
+  const { isRunning, stepLogs, activeTaskId, finalStatus, startTask, stopTask } =
     useTaskRunner();
   const { data: tasks = [], isLoading: tasksLoading } = useTasksQuery();
   const deleteMutation = useDeleteTaskMutation();
@@ -143,6 +143,16 @@ export const HomePage: FC = () => {
             </>
           }
           className="mb-4"
+        />
+      )}
+
+      {/* Completion banner */}
+      {!isRunning && finalStatus && stepLogs.length > 0 && (
+        <Alert
+          type={finalStatus === "done" ? "success" : "warning"}
+          message={`Task ${finalStatus === "done" ? "completed" : "stopped"} — ${stepLogs.length} step(s) executed`}
+          className="mb-4"
+          closable
         />
       )}
 
