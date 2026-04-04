@@ -57,16 +57,14 @@ OMNIPARSER_MODEL_PATH = WEIGHTS_DIR / "icon_detect" / "model.pt"
 CHECKPOINT_GDRIVE_URL = "https://drive.google.com/drive/folders/18RNkzvGCehTvi6J1vqV4hb8E9_fkmvXR?usp=drive_link"
 
 INSTRUCTION_TEMPLATE = (
-    "Imagine that you are imitating humans doing web navigation for a task step by step. "
-    "At each stage, you can see the webpage like humans by a screenshot and know the previous "
-    "actions before the current step decided by yourself through recorded history. You need to "
-    "decide on the following action to take. You can click an element with the mouse, select an "
-    "option, or type text with the keyboard. The output format should be a dictionary like: \n"
-    '{"ACTION": "CLICK" or "TYPE" or "SELECT", "MARK": a numeric id, e.g., 5, '
-    '"VALUE": a string value for the action if applicable, otherwise None}.\n'
-    "You are asked to complete the following task: {task_prompt}\n"
-    "For your convenience, I have labeled the candidates with numeric marks and bounding boxes "
-    "on the screenshot. What is the next action you would take?"
+    "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
+    "You can perform actions such as CLICK, DOUBLE_CLICK, RIGHT_CLICK, TYPE.\n\n"
+    "Output format must be:\n"
+    '{{"ACTION": action_type, "MARK": numeric_id, "VALUE": text_or_null}}\n\n'
+    "Task: {task_prompt}\n\n"
+    "Previous actions:\n{previous_actions}\n\n"
+    "For your convenience, UI elements are labeled with numeric marks.\n\n"
+    "What is the next action?\n"
 )
 
 # ---------------------------------------------------------------------------
@@ -319,14 +317,14 @@ def parse_action(text: str) -> dict:
 # ---------------------------------------------------------------------------
 # Inference: screenshot + prompt → predicted action with coordinates
 # ---------------------------------------------------------------------------
-def infer(image: Image.Image, task_prompt: str) -> dict:
+def infer(image: Image.Image, task_prompt: str, previous_actions: str = "None") -> dict:
     """
     Run full SoM + Magma inference pipeline.
 
     Returns dict with keys:
-        action   – "CLICK" | "TYPE" | "SELECT"
+        action   – "CLICK" | "TYPE" | "DOUBLE_CLICK" | "RIGHT_CLICK"
         x, y     – pixel coordinates of the predicted target (or None)
-        value    – text value for TYPE/SELECT (or None)
+        value    – text value for TYPE (or None)
         mark_id  – numeric mark index predicted by model (or None)
         raw_response – raw model text output
     """
@@ -336,8 +334,11 @@ def infer(image: Image.Image, task_prompt: str) -> dict:
     # 1. SoM detection + annotation
     som_annotated_image, candidate_bboxes = build_som_candidates(image, yolo)
 
-    # 2. Build prompt (matching notebook)
-    instruction = INSTRUCTION_TEMPLATE.replace("{task_prompt}", task_prompt)
+    # 2. Build prompt (matching training format)
+    instruction = INSTRUCTION_TEMPLATE.format(
+        task_prompt=task_prompt,
+        previous_actions=previous_actions,
+    )
     full_prompt = f"<image_start><image><image_end>\n{instruction}"
 
     convs = [
@@ -389,4 +390,5 @@ def infer(image: Image.Image, task_prompt: str) -> dict:
         "value": value if value and str(value).lower() != "none" else None,
         "mark_id": mark_id,
         "raw_response": response,
+        "som_image": som_annotated_image,
     }

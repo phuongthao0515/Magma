@@ -36,7 +36,7 @@ _ACTION_MAP: dict[str, ActionType] = {
 
 
 def _save_process_data(task: TaskDAO, screenshot_b64: str, step: int) -> None:
-    """Save the prompt and screenshot to disk for inspection."""
+    """Save the prompt and raw screenshot to disk for inspection."""
     task_dir = PROCESS_OUTPUT_DIR / task.id
     task_dir.mkdir(parents=True, exist_ok=True)
 
@@ -91,6 +91,7 @@ class TaskService:
         if task is None:
             raise ValueError(f"Task not found: {payload.task_id}")
 
+        # Save raw screenshot first (SoM image added after inference)
         _save_process_data(task, payload.screenshot_base64, payload.step)
 
         if task.status == TaskStatus.DONE:
@@ -121,7 +122,21 @@ class TaskService:
 
         # --- Real model inference ---
         image = _decode_screenshot(payload.screenshot_base64)
-        result = infer(image, task.prompt)
+
+        # Build previous actions string for prompt
+        if task.actions_history:
+            prev = "\n".join(f"- {a.description}" for a in task.actions_history)
+        else:
+            prev = "None"
+
+        result = infer(image, task.prompt, previous_actions=prev)
+
+        # Save SoM-annotated image for debugging
+        som_image = result.pop("som_image", None)
+        if som_image is not None:
+            task_dir = PROCESS_OUTPUT_DIR / task.id
+            task_dir.mkdir(parents=True, exist_ok=True)
+            som_image.save(task_dir / f"step_{payload.step:03d}_som.png")
 
         predicted = result["action"]
         action_type = _ACTION_MAP.get(predicted, ActionType.DONE)

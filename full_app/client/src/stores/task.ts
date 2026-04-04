@@ -13,10 +13,12 @@ interface TaskStore {
   activeTaskId: string | null;
   isRunning: boolean;
   stepLogs: StepLog[];
+  finalStatus: string | null;
 }
 
 export const taskStore = new Store<TaskStore>({
   activeTaskId: null,
   isRunning: false,
   stepLogs: [],
+  finalStatus: null,
 });

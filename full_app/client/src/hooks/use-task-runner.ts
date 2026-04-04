@@ -50,7 +50,11 @@ export const useTaskRunner = () => {
         // Update status
         if (task.status === "done" || task.status === "failed") {
           stopPolling();
-          taskStore.setState((s) => ({ ...s, isRunning: false }));
+          taskStore.setState((s) => ({
+            ...s,
+            isRunning: false,
+            finalStatus: task.status,
+          }));
           queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
         }
       } catch {
@@ -73,10 +77,13 @@ export const useTaskRunner = () => {
         activeTaskId: task.id,
         isRunning: true,
         stepLogs: [],
+        finalStatus: null,
       }));
 
       // Start polling for progress updates from the agent
+      // First poll fires immediately so we don't miss fast tasks
       stopPolling();
+      pollTaskProgress(task.id);
       pollRef.current = setInterval(() => {
         pollTaskProgress(task.id);
       }, POLL_INTERVAL);
