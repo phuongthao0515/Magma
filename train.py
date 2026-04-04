@@ -180,7 +180,7 @@ def get_mm_adapter_state(named_params, keys_to_match):
 def find_all_linear_names(model):
     cls = torch.nn.Linear
     lora_module_names = set()
-    multimodal_keywords = ['multi_modal_projector', 'vision_resampler']
+    multimodal_keywords = ['multi_modal_projector', 'vision_tower', 'vision_resampler']
     for name, module in model.named_modules():
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
@@ -190,6 +190,15 @@ def find_all_linear_names(model):
 
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
+
+    # Add vision tower trunk MLP layers (ConvNeXt fc1/fc2) — Stage 3 only
+    # Stage 3 (3 blocks, 6 fc layers) to fit in 16GB VRAM
+    for name, module in model.named_modules():
+        if 'vision_tower' in name and 'trunk.stages.3' in name and 'mlp' in name and isinstance(module, cls):
+            leaf = name.split('.')[-1]
+            if leaf in ['fc1', 'fc2']:
+                lora_module_names.add(name)
+
     return list(lora_module_names)
 
 
@@ -488,8 +497,8 @@ def train():
             lora_dropout=training_args.lora_dropout,
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
-            rank_pattern={"fc1": 8, "fc2": 8},
-            alpha_pattern={"fc1": 16, "fc2": 16},
+            rank_pattern={".*vision_tower.*": 8},
+            alpha_pattern={".*vision_tower.*": 16},
         )
         if training_args.bits == 16:
             if training_args.bf16:

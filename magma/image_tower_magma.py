@@ -318,7 +318,13 @@ class D2CLIP_HF(nn.Module):
         out = {}
         x = self.clip_vision_model.trunk.stem(x)
         if gradient_checkpointing:
-            x = checkpoint.checkpoint(self.clip_vision_model.trunk.stages, x, use_reentrant=False)
+            # Run stages 0-2 frozen (no grad), only stage 3 with grad for LoRA
+            num_stages = len(self.clip_vision_model.trunk.stages)
+            with torch.no_grad():
+                for i in range(num_stages - 1):
+                    x = self.clip_vision_model.trunk.stages[i](x)
+            x = x.requires_grad_(True)
+            x = checkpoint.checkpoint(self.clip_vision_model.trunk.stages[num_stages - 1], x)
         else:
             x = self.clip_vision_model.trunk.stages(x)
         out['clip_vis_dense'] = x
