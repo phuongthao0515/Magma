@@ -13,8 +13,8 @@ CYCLE_MODE=false
 
 # Default: train from original Magma-8B
 BASE_MODEL="microsoft/Magma-8B"
-OUTPUT_DIR="./checkpoints/finetune-word-som-4actions-r32-a64-maxlen2048-focal"
-RUN_NAME="word-som-4actions-r32-a64-focal"
+OUTPUT_DIR="./checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks"
+RUN_NAME="3apps-r32-a64-focal-marks-2560"
 
 # Parse flags
 for arg in "$@"; do
@@ -30,6 +30,8 @@ for arg in "$@"; do
     esac
 done
 
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 echo "Base model:  $BASE_MODEL"
 echo "Output dir:  $OUTPUT_DIR"
 echo "Cycle mode:  $CYCLE_MODE"
@@ -44,14 +46,16 @@ run_training() {
 
 TRAIN_ARGS=(
     --model_name_or_path $BASE_MODEL
-    --data_path "data_configs/word_som_4actions.yaml"
+    --data_path "data_configs/office_3apps_4actions.yaml"
     --output_dir $OUTPUT_DIR
     --is_multimodal True
     --bf16 True
-    --num_train_epochs 3
+    --num_train_epochs 2
     --per_device_train_batch_size 1
     --gradient_accumulation_steps 4
     --learning_rate 5e-5
+    --warmup_ratio 0.03
+    --lr_scheduler_type cosine
     --save_steps 100
     --logging_steps 10
     --evaluation_strategy no
@@ -62,7 +66,9 @@ TRAIN_ARGS=(
     --lora_alpha 64
     --tune_mm_mlp_adapter True
     --img_size 768
-    --model_max_length 2048
+    --model_max_length 2560
+    --flash_attn_2_enabled True
+    --dataloader_num_workers 4
     --report_to wandb
     --run_name "$RUN_NAME"
 )
