@@ -190,15 +190,6 @@ def find_all_linear_names(model):
 
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
-
-    # Add vision tower trunk MLP layers (ConvNeXt fc1/fc2) — Stage 3 only
-    # Stage 3 (3 blocks, 6 fc layers) to fit in 16GB VRAM
-    for name, module in model.named_modules():
-        if 'vision_tower' in name and 'trunk.stages.3' in name and 'mlp' in name and isinstance(module, cls):
-            leaf = name.split('.')[-1]
-            if leaf in ['fc1', 'fc2']:
-                lora_module_names.add(name)
-
     return list(lora_module_names)
 
 
@@ -497,8 +488,6 @@ def train():
             lora_dropout=training_args.lora_dropout,
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
-            rank_pattern={".*vision_tower.*": 8},
-            alpha_pattern={".*vision_tower.*": 16},
         )
         if training_args.bits == 16:
             if training_args.bf16:
@@ -520,10 +509,7 @@ def train():
 
     if model_args.tune_vision_tokenizer == "none":
         for name, p in model.vision_tower.named_parameters():
-            if 'lora_' not in name:
-                p.requires_grad = False
-            else:
-                p.requires_grad = True
+            p.requires_grad = False
 
     total_params = get_model_param_count(model, trainable_only=True)
     rank0_print(f"Total trainable parameters: {total_params}")
