@@ -109,7 +109,7 @@ def run_inference(model, processor, image, instruction):
         output_ids = model.generate(
             **inputs,
             do_sample=False,
-            num_beams=1,
+            num_beams=2,
             max_new_tokens=50,
             use_cache=True,
         )
@@ -298,7 +298,7 @@ def main():
         "results": all_results,
     }
 
-    results_path = os.path.join(RESULTS_DIR, "test_results_focal_3600_v5.json")
+    results_path = os.path.join(RESULTS_DIR, "test_results_exp13_focal_3600_beam2_50_samples.json")
     with open(results_path, "w") as f:
         json.dump(output, f, indent=2)
     print(f"\nDetailed results saved to: {results_path}")
