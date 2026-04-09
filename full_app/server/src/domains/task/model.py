@@ -60,7 +60,7 @@ INSTRUCTION_TEMPLATE = (
     "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
     "You can perform actions such as CLICK, DOUBLE_CLICK, RIGHT_CLICK, TYPE.\n\n"
     "Output format must be:\n"
-    '{{"ACTION": action_type, "MARK": numeric_id, "VALUE": text_or_null}}\n\n'
+    '{{"ACTION": action_type, "MARK": numeric_id, "VALUE": text_or_none}}\n\n'
     "Task: {task_prompt}\n\n"
     "Previous actions:\n{previous_actions}\n\n"
     "For your convenience, UI elements are labeled with numeric marks.\n\n"
@@ -331,10 +331,10 @@ def infer(image: Image.Image, task_prompt: str, previous_actions: str = "None") 
     model, processor = load_magma()
     yolo = load_yolo()
 
-    # 1. SoM detection + annotation
-    som_annotated_image, candidate_bboxes = build_som_candidates(image, yolo)
+    # 1. SoM detection + annotation (YOLO + OCR, matching training)
+    som_annotated_image, candidate_bboxes, marks_text = build_som_candidates(image, yolo)
 
-    # 2. Build prompt (matching training format)
+    # 2. Build prompt (matching training format — no mark list for checkpoint-3600)
     instruction = INSTRUCTION_TEMPLATE.format(
         task_prompt=task_prompt,
         previous_actions=previous_actions,
@@ -350,6 +350,12 @@ def infer(image: Image.Image, task_prompt: str, previous_actions: str = "None") 
     if hasattr(model, "config") and getattr(model.config, "mm_use_image_start_end", False):
         formatted_prompt = formatted_prompt.replace("<image>", "<image_start><image><image_end>")
 
+    logger.info("=" * 60)
+    logger.info("INFERENCE PROMPT:")
+    logger.info(instruction)
+    logger.info(f"Num marks: {len(candidate_bboxes)}")
+    logger.info("=" * 60)
+
     # 3. Tokenize + run inference
     inputs = processor(images=[som_annotated_image], texts=formatted_prompt, return_tensors="pt")
     inputs["pixel_values"] = inputs["pixel_values"].unsqueeze(0)
@@ -364,13 +370,15 @@ def infer(image: Image.Image, task_prompt: str, previous_actions: str = "None") 
         output_ids = model.generate(
             **inputs,
             do_sample=False,
-            num_beams=1,
+            num_beams=2,
             max_new_tokens=256,
             use_cache=True,
         )
 
     generate_ids = output_ids[:, inputs["input_ids"].shape[-1] :]
     response = processor.decode(generate_ids[0], skip_special_tokens=True).strip()
+
+    logger.info(f"MODEL RAW RESPONSE: {response}")
 
     # 4. Parse action
     prediction = parse_action(response)
