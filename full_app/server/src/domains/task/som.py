@@ -1,16 +1,22 @@
 """
 Self-contained Set-of-Marks (SoM) utilities for UI element annotation.
-Extracted from agents/ui_agent/util/som.py to keep the server self-contained.
+
+Aligned with training preprocessing (preprocess_office_som.py):
+- YOLO + EasyOCR combined detection
+- OCR-aware overlap removal
+- Matching thresholds: BOX_THRESHOLD=0.25, OCR_TEXT_THRESHOLD=0.9
 """
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
-import torch
 from PIL import Image, ImageDraw, ImageFont
 from ultralytics import YOLO
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Font path (bundled with server)
@@ -18,11 +24,35 @@ from ultralytics import YOLO
 _FONT_PATH = Path(__file__).resolve().parent / "fonts" / "arial.ttf"
 
 # ---------------------------------------------------------------------------
-# SoM detection constants (matching the notebook)
+# Detection constants — ALIGNED WITH TRAINING (preprocess_office_som.py)
 # ---------------------------------------------------------------------------
-BOX_THRESHOLD = 0.1
+BOX_THRESHOLD = 0.25          # was 0.1, training uses 0.25
 MIN_BOX_AREA = 0.0
 OVERLAP_IOU_THRESHOLD = 0.7
+MAX_MARKS = 100
+
+# OCR parameters — matching training
+OCR_TEXT_THRESHOLD = 0.9
+OCR_MAX_AREA_RATIO = 0.05     # filter OCR boxes > 5% of image area
+
+# Mark coordinate injection — matching inject_mark_coords.py
+GRID_SIZE = 100
+
+
+# ---------------------------------------------------------------------------
+# EasyOCR singleton (lazy-loaded to avoid startup cost if not needed)
+# ---------------------------------------------------------------------------
+_ocr_reader = None
+
+
+def _get_ocr_reader():
+    global _ocr_reader
+    if _ocr_reader is None:
+        import easyocr
+        logger.info("Loading EasyOCR reader (first call)...")
+        _ocr_reader = easyocr.Reader(["en"], gpu=True)
+        logger.info("EasyOCR reader loaded")
+    return _ocr_reader
 
 
 # ---------------------------------------------------------------------------
@@ -205,44 +235,136 @@ def plot_boxes_with_marks(
 
 
 # ---------------------------------------------------------------------------
-# Overlap removal (matching notebook logic)
+# OCR detection — ported from preprocess_office_som.py
 # ---------------------------------------------------------------------------
-def remove_overlap(boxes: torch.Tensor, iou_threshold: float) -> torch.Tensor:
-    def box_area(box):
-        return (box[2] - box[0]) * (box[3] - box[1])
+def _run_ocr(image: Image.Image) -> list[dict]:
+    """Run EasyOCR on image, return structured element list in pixel xyxy."""
+    ocr_reader = _get_ocr_reader()
+    image_np = np.array(image)
+    width, height = image.size
 
-    def intersection_area(box1, box2):
-        x1 = max(box1[0], box2[0])
-        y1 = max(box1[1], box2[1])
-        x2 = min(box1[2], box2[2])
-        y2 = min(box1[3], box2[3])
-        return max(0, x2 - x1) * max(0, y2 - y1)
+    result = ocr_reader.readtext(
+        image_np, paragraph=False, text_threshold=OCR_TEXT_THRESHOLD
+    )
 
-    def iou(box1, box2):
-        inter = intersection_area(box1, box2)
-        union = box_area(box1) + box_area(box2) - inter + 1e-6
-        a1, a2 = box_area(box1), box_area(box2)
-        ratio1 = inter / a1 if a1 > 0 else 0
-        ratio2 = inter / a2 if a2 > 0 else 0
-        return max(inter / union, ratio1, ratio2)
+    ocr_elements = []
+    for item in result:
+        coord = item[0]  # corner format [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+        text = item[1]
+        all_x = [pt[0] for pt in coord]
+        all_y = [pt[1] for pt in coord]
+        x1, y1 = int(min(all_x)), int(min(all_y))
+        x2, y2 = int(max(all_x)), int(max(all_y))
 
-    boxes_list = boxes.tolist()
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        center_y_norm = ((y1 + y2) / 2) / height
+        if center_y_norm > 0.93:
+            continue
+
+        area = (x2 - x1) * (y2 - y1)
+        if area >= OCR_MAX_AREA_RATIO * width * height:
+            continue
+
+        ocr_elements.append({
+            "type": "text",
+            "bbox": [x1, y1, x2, y2],
+            "content": text,
+        })
+
+    return ocr_elements
+
+
+# ---------------------------------------------------------------------------
+# OCR-aware overlap removal — ported from preprocess_office_som.py
+# ---------------------------------------------------------------------------
+def _box_area(box: list) -> int:
+    return max(0, box[2] - box[0]) * max(0, box[3] - box[1])
+
+
+def _intersection_area(box1: list, box2: list) -> int:
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+    return max(0, x2 - x1) * max(0, y2 - y1)
+
+
+def _iou_xyxy(box1: list, box2: list) -> float:
+    inter = _intersection_area(box1, box2)
+    union = _box_area(box1) + _box_area(box2) - inter + 1e-6
+    return inter / union
+
+
+def _is_inside(inner: list, outer: list, threshold: float = 0.80) -> bool:
+    """Check if inner box is mostly inside outer box."""
+    inter = _intersection_area(inner, outer)
+    inner_area = _box_area(inner)
+    if inner_area == 0:
+        return False
+    return inter / inner_area >= threshold
+
+
+def _remove_overlap_yolo(yolo_elements: list[dict], iou_threshold: float) -> list[dict]:
+    """Remove overlapping YOLO boxes, keeping the smaller one."""
+    if not yolo_elements:
+        return []
     filtered = []
-    for i, box1 in enumerate(boxes_list):
+    for i, elem_i in enumerate(yolo_elements):
         is_valid = True
-        for j, box2 in enumerate(boxes_list):
-            if i != j and iou(box1, box2) > iou_threshold and box_area(box1) > box_area(box2):
-                is_valid = False
-                break
+        for j, elem_j in enumerate(yolo_elements):
+            if i != j and _iou_xyxy(elem_i["bbox"], elem_j["bbox"]) > iou_threshold:
+                if _box_area(elem_i["bbox"]) > _box_area(elem_j["bbox"]):
+                    is_valid = False
+                    break
         if is_valid:
-            filtered.append(box1)
-    return torch.tensor(filtered) if filtered else torch.zeros(0, 4)
+            filtered.append(elem_i)
+    return filtered
+
+
+def _remove_overlap_ocr_aware(
+    yolo_elements: list[dict], iou_threshold: float, ocr_elements: list[dict]
+) -> list[dict]:
+    """OCR-aware overlap removal — matching preprocess_office_som.py.
+
+    - If OCR text is inside a YOLO icon: absorb text into the icon
+    - If YOLO icon is inside OCR text: drop the icon
+    - Otherwise: keep both
+    """
+    if not yolo_elements and not ocr_elements:
+        return []
+
+    output = list(ocr_elements)
+    yolo_deduped = _remove_overlap_yolo(yolo_elements, iou_threshold)
+
+    for yolo_elem in yolo_deduped:
+        absorbed = False
+        for i, ocr_elem in enumerate(output):
+            if ocr_elem["type"] != "text":
+                continue
+
+            if _is_inside(ocr_elem["bbox"], yolo_elem["bbox"]):
+                yolo_elem["content"] = ocr_elem["content"]
+                output.pop(i)
+                output.append(yolo_elem)
+                absorbed = True
+                break
+
+            if _is_inside(yolo_elem["bbox"], ocr_elem["bbox"]):
+                absorbed = True
+                break
+
+        if not absorbed:
+            output.append(yolo_elem)
+
+    return output
 
 
 # ---------------------------------------------------------------------------
-# UI element detection with YOLO (OmniParser)
+# YOLO detection — returns element dicts in pixel xyxy
 # ---------------------------------------------------------------------------
-def detect_ui_elements(image: Image.Image, yolo_model: YOLO) -> list[tuple]:
+def _detect_yolo_elements(image: Image.Image, yolo_model: YOLO) -> list[dict]:
     width, height = image.size
     result = yolo_model.predict(source=image, conf=BOX_THRESHOLD, iou=0.1, verbose=False)
 
@@ -250,40 +372,152 @@ def detect_ui_elements(image: Image.Image, yolo_model: YOLO) -> list[tuple]:
     if len(raw_boxes) == 0:
         return []
 
-    xyxy_norm = raw_boxes / torch.tensor([width, height, width, height], device=raw_boxes.device)
-    xyxy_norm = remove_overlap(xyxy_norm, iou_threshold=OVERLAP_IOU_THRESHOLD)
-
-    bboxes = []
-    for box in xyxy_norm.tolist():
+    elements = []
+    for box in raw_boxes.tolist():
         x1, y1, x2, y2 = box
-        bh, bw = y2 - y1, x2 - x1
-        if bh * bw >= MIN_BOX_AREA:
-            center_y = (y1 + y2) / 2
-            if center_y <= 0.93:
-                bboxes.append((y1, x1, bh, bw))
-    return bboxes
+        center_y_norm = ((y1 + y2) / 2) / height
+        if center_y_norm > 0.93:
+            continue
+        bh_norm = (y2 - y1) / height
+        bw_norm = (x2 - x1) / width
+        if bh_norm * bw_norm < MIN_BOX_AREA:
+            continue
+
+        elements.append({
+            "type": "icon",
+            "bbox": [int(x1), int(y1), int(x2), int(y2)],
+            "content": None,
+        })
+
+    return elements
 
 
 # ---------------------------------------------------------------------------
-# build_som_candidates – full pipeline: detect → annotate → return map
+# Combined YOLO + OCR detection — matching training pipeline
+# ---------------------------------------------------------------------------
+def detect_ui_elements_with_ocr(
+    image: Image.Image, yolo_model: YOLO
+) -> tuple[list[tuple], list[dict]]:
+    """Combined YOLO + OCR detection pipeline (matches preprocess_office_som.py).
+
+    Returns:
+        bboxes_norm: list of (y, x, h, w) normalized — for MarkHelper drawing
+        filtered_elements: list of element dicts with bbox/content — for metadata
+    """
+    width, height = image.size
+
+    ocr_elements = _run_ocr(image)
+    yolo_elements = _detect_yolo_elements(image, yolo_model)
+
+    filtered_elements = _remove_overlap_ocr_aware(
+        yolo_elements, OVERLAP_IOU_THRESHOLD, ocr_elements
+    )
+
+    if not filtered_elements:
+        return [], []
+
+    bboxes_norm = []
+    valid_elements = []
+    for elem in filtered_elements:
+        x1, y1, x2, y2 = elem["bbox"]
+        if x2 <= x1 or y2 <= y1:
+            continue
+        bboxes_norm.append((
+            y1 / height,
+            x1 / width,
+            (y2 - y1) / height,
+            (x2 - x1) / width,
+        ))
+        valid_elements.append(elem)
+    filtered_elements = valid_elements
+
+    if len(bboxes_norm) > MAX_MARKS:
+        bboxes_norm = bboxes_norm[:MAX_MARKS]
+        filtered_elements = filtered_elements[:MAX_MARKS]
+
+    return bboxes_norm, filtered_elements
+
+
+# ---------------------------------------------------------------------------
+# Mark coordinate text for prompt injection — matching inject_mark_coords.py
+# ---------------------------------------------------------------------------
+def _is_clean_ocr(text: str) -> bool:
+    """Check if OCR text is clean enough to include in the prompt."""
+    if not text or not text.strip():
+        return False
+    if len(text.strip()) < 2:
+        return False
+    if not text.isascii():
+        return False
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,;:!?()/-@&+_=")
+    allowed_count = sum(1 for c in text if c in allowed)
+    if len(text) > 0 and allowed_count / len(text) < 0.85:
+        return False
+    if len(text.strip()) <= 4 and not any(c.isalpha() for c in text):
+        return False
+    harsh = set("#*{}[]<>~^|\\`")
+    harsh_count = sum(1 for c in text if c in harsh)
+    if len(text) > 0 and harsh_count / len(text) > 0.3:
+        return False
+    return True
+
+
+def format_marks_text(
+    bboxes_norm: list[tuple],
+    elements: list[dict],
+    grid_size: int = GRID_SIZE,
+) -> str:
+    """Format mark metadata into text for prompt injection.
+
+    Uses Magma pretrained format: Mark X at [gx,gy]
+    Optionally appends clean OCR text: Mark X at [gx,gy] "File"
+    """
+    entries = []
+    for idx, ((y, x, h, w), elem) in enumerate(zip(bboxes_norm, elements)):
+        norm_cx = x + w / 2
+        norm_cy = y + h / 2
+        gx = min(int(norm_cx * grid_size), grid_size - 1)
+        gy = min(int(norm_cy * grid_size), grid_size - 1)
+
+        entry = f"Mark {idx} at [{gx},{gy}]"
+
+        ocr_text = elem.get("content")
+        if ocr_text and _is_clean_ocr(ocr_text):
+            clean = ocr_text.strip().replace('"', "").replace("'", "")
+            entry += f' "{clean}"'
+
+        entries.append(entry)
+
+    return ". ".join(entries)
+
+
+# ---------------------------------------------------------------------------
+# build_som_candidates – full pipeline: YOLO+OCR → annotate → return map
 # ---------------------------------------------------------------------------
 def build_som_candidates(
     image: Image.Image, yolo_model: YOLO
-) -> tuple[Image.Image, dict[int, tuple[int, int, int, int]]]:
+) -> tuple[Image.Image, dict[int, tuple[int, int, int, int]], str]:
+    """Full SoM pipeline aligned with training preprocessing.
+
+    Returns:
+        som_annotated_image: image with SoM marks drawn
+        candidate_bboxes: {mark_id: (x1, y1, x2, y2)} pixel coordinates
+        marks_text: formatted mark coordinates for prompt injection
+    """
     width, height = image.size
-    all_bboxes_normalized = detect_ui_elements(image, yolo_model)
+    bboxes_norm, elements = detect_ui_elements_with_ocr(image, yolo_model)
 
     som_annotated_image = image.copy()
-    if all_bboxes_normalized:
+    if bboxes_norm:
         mark_helper = MarkHelper()
         mark_helper.min_font_size = 12
         mark_helper.max_font_size = 14
         som_annotated_image = plot_boxes_with_marks(
             som_annotated_image,
-            all_bboxes_normalized,
+            bboxes_norm,
             mark_helper,
             edgecolor=(255, 0, 0),
-            linewidth=2,
+            linewidth=1,
             normalized_to_pixel=True,
             add_mark=True,
         )
@@ -295,7 +529,9 @@ def build_som_candidates(
             int((x_norm + w_norm) * width),
             int((y_norm + h_norm) * height),
         )
-        for idx, (y_norm, x_norm, h_norm, w_norm) in enumerate(all_bboxes_normalized)
+        for idx, (y_norm, x_norm, h_norm, w_norm) in enumerate(bboxes_norm)
     }
 
-    return som_annotated_image, candidate_bboxes
+    marks_text = format_marks_text(bboxes_norm, elements)
+
+    return som_annotated_image, candidate_bboxes, marks_text

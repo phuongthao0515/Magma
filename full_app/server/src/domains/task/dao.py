@@ -25,11 +25,6 @@ class ActionType(StrEnum):
     DOUBLE_CLICK = "double_click"
     RIGHT_CLICK = "right_click"
     TYPE = "type"
-    SELECT = "select"
-    HOTKEY = "hotkey"
-    SCROLL = "scroll"
-    MOVE = "move"
-    DRAG = "drag"
     DONE = "done"
 
 
