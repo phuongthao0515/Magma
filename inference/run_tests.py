@@ -20,9 +20,9 @@ from tqdm import tqdm
 # ============ CONFIGURATION ============
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-4actions-r32-a64-maxlen2048-focal/checkpoint-3600"
+CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3200"
 IMG_SIZE = 768
-TEST_CASES_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases.json"
+TEST_CASES_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases_new.json"
 RESULTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/results"
 
 INSTRUCTION_TEMPLATE = (
@@ -172,8 +172,23 @@ def main():
     with open(TEST_CASES_JSON) as f:
         test_cases = json.load(f)
 
-    total_prompts = sum(len(tc["prompts"]) for tc in test_cases)
-    print(f"Test cases: {len(test_cases)} images, {total_prompts} prompts total")
+    # Support both old format (prompts per image) and new format (conversations per sample)
+    is_new_format = len(test_cases) > 0 and "conversations" in test_cases[0]
+
+    # Flatten to list of (image_path, instruction, expected, prompt_text)
+    flat_samples = []
+    if is_new_format:
+        for sample in test_cases:
+            instruction = sample["conversations"][0]["value"].replace("<image>\n", "").replace("<image>", "")
+            expected = json.loads(sample["conversations"][1]["value"])
+            flat_samples.append((sample["image"], instruction, expected, instruction[:80]))
+    else:
+        for tc in test_cases:
+            for prompt_info in tc["prompts"]:
+                instruction = INSTRUCTION_TEMPLATE.format(task_prompt=prompt_info["prompt"])
+                flat_samples.append((tc["annotated_image"], instruction, prompt_info["expected"], prompt_info["prompt"]))
+
+    print(f"Test samples: {len(flat_samples)}")
 
     print(f"\nLoading model: {BASE_MODEL} + {CHECKPOINT_PATH}")
     model, processor = load_model()
@@ -182,37 +197,30 @@ def main():
     all_results = []
     sample_idx = 0
 
-    for tc in tqdm(test_cases, desc="Images"):
-        annotated_path = tc["annotated_image"]
-        if not os.path.exists(annotated_path):
-            print(f"  WARNING: annotated image not found: {annotated_path}")
+    for image_path, instruction, expected, prompt in tqdm(flat_samples, desc="Samples"):
+        sample_idx += 1
+        if not os.path.exists(image_path):
+            print(f"  WARNING: image not found: {image_path}")
             continue
 
-        image = Image.open(annotated_path).convert("RGB")
+        image = Image.open(image_path).convert("RGB")
+        raw_response = run_inference(model, processor, image, instruction)
+        prediction = parse_action(raw_response)
+        eval_result = evaluate_sample(prediction, expected)
 
-        for prompt_info in tc["prompts"]:
-            sample_idx += 1
-            prompt = prompt_info["prompt"]
-            expected = prompt_info["expected"]
+        result = {
+            "index": sample_idx,
+            "image": image_path,
+            "prompt": prompt,
+            "expected": expected,
+            "prediction": prediction,
+            "raw_response": raw_response,
+            **eval_result,
+        }
+        all_results.append(result)
 
-            instruction = INSTRUCTION_TEMPLATE.format(task_prompt=prompt)
-            raw_response = run_inference(model, processor, image, instruction)
-            prediction = parse_action(raw_response)
-            eval_result = evaluate_sample(prediction, expected)
-
-            result = {
-                "index": sample_idx,
-                "image": tc["image"],
-                "prompt": prompt,
-                "expected": expected,
-                "prediction": prediction,
-                "raw_response": raw_response,
-                **eval_result,
-            }
-            all_results.append(result)
-
-            status = "PASS" if eval_result["overall_match"] else "FAIL"
-            print(f"  [{status}] {prompt[:50]}... -> {raw_response[:60]}")
+        status = "PASS" if eval_result["overall_match"] else "FAIL"
+        print(f"  [{status}] {prompt[:50]}... -> {raw_response[:60]}")
 
     # Compute metrics
     total = len(all_results)
@@ -237,11 +245,14 @@ def main():
     print(f"{'-'*80}")
 
     per_image = {}
-    for tc in test_cases:
-        folder = tc["test_folder"]
-        img_results = [r for r in all_results if r["image"] == tc["image"]]
-        if not img_results:
-            continue
+    # Group results by image path
+    from collections import defaultdict
+    by_image = defaultdict(list)
+    for r in all_results:
+        by_image[r["image"]].append(r)
+
+    for img_path, img_results in sorted(by_image.items()):
+        folder = os.path.basename(img_path).replace(".png", "")[:10]
         n = len(img_results)
         act = sum(r["action_match"] for r in img_results)
         elem = sum(r["element_match"] for r in img_results)
@@ -298,7 +309,7 @@ def main():
         "results": all_results,
     }
 
-    results_path = os.path.join(RESULTS_DIR, "test_results_exp13_focal_3600_beam2_50_samples.json")
+    results_path = os.path.join(RESULTS_DIR, "test_results_exp15_3apps_3200_beam2_new_format.json")
     with open(results_path, "w") as f:
         json.dump(output, f, indent=2)
     print(f"\nDetailed results saved to: {results_path}")
