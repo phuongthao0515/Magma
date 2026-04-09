@@ -8,7 +8,7 @@
 #   bash run.sh --from-mind2web --cycle  # both flags
 
 TRAIN_HOURS=3
-REST_HOURS=1
+REST_HOURS=2
 CYCLE_MODE=false
 
 # Default: train from original Magma-8B
