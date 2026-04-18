@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useStore } from "@tanstack/react-store";
 import { taskStore } from "../stores/task";
-import { createTask, getTask } from "../services/task";
+import { createTask, getTask, updateTaskStatus } from "../services/task";
 import { useQueryClient } from "@tanstack/react-query";
 import { TASK_QUERY_KEYS } from "../services/task.query";
 import type { StepLog } from "../stores/task";
@@ -48,7 +48,7 @@ export const useTaskRunner = () => {
         }
 
         // Update status
-        if (task.status === "done" || task.status === "failed") {
+        if (task.status === "done" || task.status === "failed" || task.status === "cancelled") {
           stopPolling();
           taskStore.setState((s) => ({
             ...s,
@@ -91,10 +91,19 @@ export const useTaskRunner = () => {
     [pollTaskProgress, stopPolling]
   );
 
-  const stopTask = useCallback(() => {
+  const stopTask = useCallback(async () => {
     stopPolling();
-    taskStore.setState((s) => ({ ...s, isRunning: false }));
-  }, [stopPolling]);
+    const taskId = taskStore.state.activeTaskId;
+    if (taskId) {
+      try {
+        await updateTaskStatus(taskId, "cancelled");
+      } catch {
+        // Server may be unreachable, still stop locally
+      }
+    }
+    taskStore.setState((s) => ({ ...s, isRunning: false, finalStatus: "cancelled" }));
+    queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+  }, [stopPolling, queryClient]);
 
   // Cleanup on unmount
   useEffect(() => {

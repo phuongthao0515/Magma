@@ -8,6 +8,7 @@ Usage:
     python /home/thaole/thao_le/Magma/inference/run_tests.py
 """
 
+import gc
 import json
 import os
 import re
@@ -20,10 +21,16 @@ from tqdm import tqdm
 # ============ CONFIGURATION ============
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3200"
+# CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3400"
+CHECKPOINT_PATH="/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions/checkpoint-3400"
 IMG_SIZE = 768
-TEST_CASES_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases_new.json"
+TEST_CASES_JSONS = [
+    ("word", "/home/thaole/thao_le/Magma/inference/tests/test_cases_word_v2.json"),
+    ("excel", "/home/thaole/thao_le/Magma/inference/tests/test_cases_excel.json"),
+    ("powerpoint", "/home/thaole/thao_le/Magma/inference/tests/test_cases_powerpoint.json"),
+]
 RESULTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/results"
+RESULTS_FILENAME = "test_results_exp16_3apps_5actions_3400_beam2.json"
 
 INSTRUCTION_TEMPLATE = (
     "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
@@ -116,6 +123,11 @@ def run_inference(model, processor, image, instruction):
 
     generate_ids = output_ids[:, inputs["input_ids"].shape[-1]:]
     response = processor.decode(generate_ids[0], skip_special_tokens=True).strip()
+
+    del inputs, output_ids, generate_ids
+    gc.collect()
+    torch.cuda.empty_cache()
+
     return response
 
 
@@ -165,62 +177,84 @@ def evaluate_sample(prediction, expected):
     }
 
 
-def main():
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-
-    print(f"Loading test cases: {TEST_CASES_JSON}")
-    with open(TEST_CASES_JSON) as f:
+def load_samples_for_app(json_path):
+    """Load samples for a single app's JSON. Returns list of (image, instruction, expected, prompt)."""
+    with open(json_path) as f:
         test_cases = json.load(f)
 
-    # Support both old format (prompts per image) and new format (conversations per sample)
     is_new_format = len(test_cases) > 0 and "conversations" in test_cases[0]
-
-    # Flatten to list of (image_path, instruction, expected, prompt_text)
-    flat_samples = []
+    samples = []
     if is_new_format:
         for sample in test_cases:
             instruction = sample["conversations"][0]["value"].replace("<image>\n", "").replace("<image>", "")
             expected = json.loads(sample["conversations"][1]["value"])
-            flat_samples.append((sample["image"], instruction, expected, instruction[:80]))
+            samples.append((sample["image"], instruction, expected, instruction[:80]))
     else:
         for tc in test_cases:
             for prompt_info in tc["prompts"]:
                 instruction = INSTRUCTION_TEMPLATE.format(task_prompt=prompt_info["prompt"])
-                flat_samples.append((tc["annotated_image"], instruction, prompt_info["expected"], prompt_info["prompt"]))
+                samples.append((tc["annotated_image"], instruction, prompt_info["expected"], prompt_info["prompt"]))
+    return samples
 
-    print(f"Test samples: {len(flat_samples)}")
 
-    print(f"\nLoading model: {BASE_MODEL} + {CHECKPOINT_PATH}")
-    model, processor = load_model()
-    print("Model loaded!")
+def main():
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    # Pre-load sample lists per app (no model allocated yet)
+    per_app_samples = []
+    total_samples = 0
+    for app, json_path in TEST_CASES_JSONS:
+        samples = load_samples_for_app(json_path)
+        per_app_samples.append((app, samples))
+        total_samples += len(samples)
+        print(f"Loaded {app}: {len(samples)} samples from {json_path}")
+    print(f"\nTotal test samples: {total_samples}")
 
     all_results = []
     sample_idx = 0
 
-    for image_path, instruction, expected, prompt in tqdm(flat_samples, desc="Samples"):
-        sample_idx += 1
-        if not os.path.exists(image_path):
-            print(f"  WARNING: image not found: {image_path}")
-            continue
+    # Run each app with a fresh model load to avoid cross-app fragmentation (preserves num_beams=2 quality)
+    for app_pos, (app, samples) in enumerate(per_app_samples):
+        print(f"\n{'#'*80}")
+        print(f"# APP {app_pos + 1}/{len(per_app_samples)}: {app.upper()}  ({len(samples)} samples)")
+        print(f"{'#'*80}")
 
-        image = Image.open(image_path).convert("RGB")
-        raw_response = run_inference(model, processor, image, instruction)
-        prediction = parse_action(raw_response)
-        eval_result = evaluate_sample(prediction, expected)
+        print(f"Loading model: {BASE_MODEL} + {CHECKPOINT_PATH}")
+        model, processor = load_model()
+        print("Model loaded!")
 
-        result = {
-            "index": sample_idx,
-            "image": image_path,
-            "prompt": prompt,
-            "expected": expected,
-            "prediction": prediction,
-            "raw_response": raw_response,
-            **eval_result,
-        }
-        all_results.append(result)
+        for image_path, instruction, expected, prompt in tqdm(samples, desc=f"{app}"):
+            sample_idx += 1
+            if not os.path.exists(image_path):
+                print(f"  WARNING: image not found: {image_path}")
+                continue
 
-        status = "PASS" if eval_result["overall_match"] else "FAIL"
-        print(f"  [{status}] {prompt[:50]}... -> {raw_response[:60]}")
+            image = Image.open(image_path).convert("RGB")
+            raw_response = run_inference(model, processor, image, instruction)
+            image.close()
+            prediction = parse_action(raw_response)
+            eval_result = evaluate_sample(prediction, expected)
+
+            result = {
+                "index": sample_idx,
+                "app": app,
+                "image": image_path,
+                "prompt": prompt,
+                "expected": expected,
+                "prediction": prediction,
+                "raw_response": raw_response,
+                **eval_result,
+            }
+            all_results.append(result)
+
+            status = "PASS" if eval_result["overall_match"] else "FAIL"
+            print(f"  [{app}][{status}] {prompt[:50]}... -> {raw_response[:60]}")
+
+        # Fully release model between apps to clear allocator fragmentation
+        print(f"\nUnloading model after {app}...")
+        del model, processor
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # Compute metrics
     total = len(all_results)
@@ -283,9 +317,31 @@ def main():
         n = s["total"]
         print(f"{atype:<15} {n:>6} {s['action']/n*100:>6.1f}% {s['element']/n*100:>6.1f}% {s['overall']/n*100:>8.1f}%")
 
+    # Per-app pass/fail summary
+    print(f"\n{'='*80}")
+    print(f"PER-APP PASS/FAIL SUMMARY")
+    print(f"{'='*80}")
+    print(f"{'App':<15} {'Total':>6} {'Pass':>6} {'Fail':>6} {'Pass %':>8} {'Fail %':>8}")
+    print(f"{'-'*80}")
+
+    per_app = {}
+    by_app = defaultdict(list)
+    for r in all_results:
+        by_app[r["app"]].append(r)
+
+    for app_name, app_results in sorted(by_app.items()):
+        n = len(app_results)
+        p = sum(r["overall_match"] for r in app_results)
+        f = n - p
+        per_app[app_name] = {"total": n, "pass": p, "fail": f, "pass_rate": p / n, "fail_rate": f / n}
+        print(f"{app_name:<15} {n:>6} {p:>6} {f:>6} {p/n*100:>7.1f}% {f/n*100:>7.1f}%")
+
     # Print overall summary
     total_pass = sum(r["overall_match"] for r in all_results)
     total_fail = total - total_pass
+    print(f"{'-'*80}")
+    print(f"{'TOTAL':<15} {total:>6} {total_pass:>6} {total_fail:>6} {total_pass/total*100:>7.1f}% {total_fail/total*100:>7.1f}%")
+
     print(f"\n{'='*80}")
     print(f"OVERALL ({total} samples)")
     print(f"{'='*80}")
@@ -302,14 +358,15 @@ def main():
         "checkpoint": CHECKPOINT_PATH,
         "base_model": BASE_MODEL,
         "img_size": IMG_SIZE,
-        "test_cases_json": TEST_CASES_JSON,
+        "test_cases_jsons": TEST_CASES_JSONS,
         "metrics": metrics,
+        "per_app": per_app,
         "per_image": per_image,
         "per_action_type": action_types,
         "results": all_results,
     }
 
-    results_path = os.path.join(RESULTS_DIR, "test_results_exp15_3apps_3200_beam2_new_format.json")
+    results_path = os.path.join(RESULTS_DIR, RESULTS_FILENAME)
     with open(results_path, "w") as f:
         json.dump(output, f, indent=2)
     print(f"\nDetailed results saved to: {results_path}")

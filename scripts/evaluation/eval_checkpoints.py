@@ -22,7 +22,7 @@ import wandb
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/"
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3200"
 VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/3_apps_combined/val_3_apps_4actions.json"
 IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/3_apps_combined/images"
 RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/eval_3apps_focal_marks"

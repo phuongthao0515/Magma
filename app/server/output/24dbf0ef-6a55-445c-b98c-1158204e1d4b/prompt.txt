@@ -1,0 +1,1 @@
+Click on the Font Size box which currently shows "12" on the Home tab ribbon, and type "16" to change the font size

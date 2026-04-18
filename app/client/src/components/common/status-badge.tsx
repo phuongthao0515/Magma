@@ -7,6 +7,7 @@ const STATUS_COLORS: Record<TaskStatus, string> = {
   in_progress: "processing",
   done: "success",
   failed: "error",
+  cancelled: "warning",
 };
 
 interface StatusBadgeProps {
