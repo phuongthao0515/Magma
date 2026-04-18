@@ -1,4 +1,4 @@
-export type TaskStatus = "pending" | "in_progress" | "done" | "failed";
+export type TaskStatus = "pending" | "in_progress" | "done" | "failed" | "cancelled";
 
 export type ActionType =
   | "click"

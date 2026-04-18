@@ -1,5 +1,5 @@
 import { coreApi } from "./core-api";
-import type { Task, TaskProcessRequest, TaskProcessResponse } from "../types/task";
+import type { Task, TaskStatus, TaskProcessRequest, TaskProcessResponse } from "../types/task";
 
 export const createTask = async (prompt: string): Promise<Task> => {
   const response = await coreApi.post<Task>("/api/v1/tasks", { prompt });
@@ -25,6 +25,12 @@ export const processScreenshot = async (
   const response = await coreApi.post<TaskProcessResponse>("/api/v1/tasks/process", payload);
   if (response.success && response.data) return response.data;
   throw new Error(response.errors?.msg?.[0] || "Failed to process screenshot");
+};
+
+export const updateTaskStatus = async (taskId: string, status: TaskStatus): Promise<Task> => {
+  const response = await coreApi.patch<Task>(`/api/v1/tasks/${taskId}/status`, { status });
+  if (response.success && response.data) return response.data;
+  throw new Error(response.errors?.msg?.[0] || "Failed to update task status");
 };
 
 export const deleteTask = async (taskId: string): Promise<void> => {

@@ -65,6 +65,15 @@ export const coreApi = {
     return { ...response.data, success: !response.data.errors };
   },
 
+  patch: async <T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<ApiResult<T>> => {
+    const response = await axiosInstance.patch<ApiResult<T>>(url, data, config);
+    return { ...response.data, success: !response.data.errors };
+  },
+
   delete: async <T>(url: string, config?: AxiosRequestConfig): Promise<ApiResult<T>> => {
     const response = await axiosInstance.delete<ApiResult<T>>(url, config);
     return { ...response.data, success: !response.data.errors };

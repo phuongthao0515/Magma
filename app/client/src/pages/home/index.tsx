@@ -164,7 +164,7 @@ export const HomePage: FC = () => {
               color:
                 log.status === "done"
                   ? "green"
-                  : log.status === "failed"
+                  : log.status === "cancelled"
                     ? "red"
                     : "blue",
               children: (
@@ -205,6 +205,50 @@ export const HomePage: FC = () => {
           loading={tasksLoading}
           pagination={{ pageSize: 10 }}
           size="small"
+          expandable={{
+            expandedRowRender: (record: Task) => (
+              <div style={{ padding: "8px 0" }}>
+                {record.actions_history && record.actions_history.length > 0 ? (
+                  <Timeline
+                    items={record.actions_history.map((action, idx) => ({
+                      color: "blue",
+                      children: (
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Typography.Text strong>
+                              Step {idx}
+                            </Typography.Text>
+                          </div>
+                          <div>
+                            <Typography.Text code>
+                              {action.action_type}
+                            </Typography.Text>
+                            {" — "}
+                            {action.description}
+                          </div>
+                          {action.parameters &&
+                            Object.keys(action.parameters).length > 0 && (
+                              <Typography.Text
+                                type="secondary"
+                                className="text-xs"
+                              >
+                                {JSON.stringify(action.parameters)}
+                              </Typography.Text>
+                            )}
+                        </div>
+                      ),
+                    }))}
+                  />
+                ) : (
+                  <Typography.Text type="secondary">
+                    No actions recorded yet
+                  </Typography.Text>
+                )}
+              </div>
+            ),
+            rowExpandable: (record: Task) =>
+              record.actions_history && record.actions_history.length > 0,
+          }}
         />
       </Card>
     </ContentLayout>

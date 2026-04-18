@@ -19,8 +19,8 @@ Usage:
 import json
 import os
 
-TESTCASE_DIR = "/home/thaole/thao_le/Magma/inference/tests/tests/new"
-OUTPUT_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases_new.json"
+TESTCASE_DIR = "/home/thaole/thao_le/Magma/inference/tests/word/Word"
+OUTPUT_JSON = "/home/thaole/thao_le/Magma/inference/tests/test_cases_word_v2.json"
 GRID_SIZE = 100
 
 REFERENCE_NOTE = "The following mark positions and labels are approximate references to help you identify elements. Always verify by checking the image."
@@ -114,7 +114,7 @@ def main():
                 assistant_value = json.dumps(prompt_info["expected"])
 
                 all_samples.append({
-                    "id": f"test_new_{i}_{prompt_count}",
+                    "id": f"test_word_{i}_{prompt_count}",
                     "image": img_path,
                     "conversations": [
                         {"from": "user", "value": user_value},

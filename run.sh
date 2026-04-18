@@ -8,13 +8,13 @@
 #   bash run.sh --from-mind2web --cycle  # both flags
 
 TRAIN_HOURS=3
-REST_HOURS=2
+REST_HOURS=1
 CYCLE_MODE=false
 
 # Default: train from original Magma-8B
 BASE_MODEL="microsoft/Magma-8B"
-OUTPUT_DIR="./checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks"
-RUN_NAME="3apps-r32-a64-focal-marks-2560"
+OUTPUT_DIR="./checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions"
+RUN_NAME="3apps-5actions-r32-a64-focal-marks-2560"
 
 # Parse flags
 for arg in "$@"; do
@@ -46,7 +46,7 @@ run_training() {
 
 TRAIN_ARGS=(
     --model_name_or_path $BASE_MODEL
-    --data_path "data_configs/office_3apps_4actions.yaml"
+    --data_path "data_configs/office_3apps_5actions.yaml"
     --output_dir $OUTPUT_DIR
     --is_multimodal True
     --bf16 True
