@@ -178,6 +178,6 @@ results_*/
 research/
 wandb/
 agents/ui_agent/weights
-full_app/server/output/
+app/server/output/
 node_modules/
 Miniconda3-*.sh
