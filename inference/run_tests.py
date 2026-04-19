@@ -22,7 +22,7 @@ from tqdm import tqdm
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
 # CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3400"
-CHECKPOINT_PATH="/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions/checkpoint-3000"
+CHECKPOINT_PATH="/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions/checkpoint-3300"
 IMG_SIZE = 768
 TEST_CASES_JSONS = [
     ("word", "/home/thaole/thao_le/Magma/inference/tests/test_cases_word_v2.json"),
@@ -31,7 +31,7 @@ TEST_CASES_JSONS = [
     ("terminate", "/home/thaole/thao_le/Magma/inference/tests/test_cases_terminate.json"),
 ]
 RESULTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/results"
-RESULTS_FILENAME = "test_results_exp16_3apps_5actions_3000_beam2_with_terminate.json"
+RESULTS_FILENAME = "test_results_exp16_3apps_5actions_3300_beam2_with_terminate_273_testcases.json"
 
 INSTRUCTION_TEMPLATE = (
     "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
