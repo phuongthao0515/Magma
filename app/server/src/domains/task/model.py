@@ -53,8 +53,16 @@ WEIGHTS_DIR = Path(
 )
 OMNIPARSER_MODEL_PATH = WEIGHTS_DIR / "icon_detect" / "model.pt"
 
-# Google Drive folder containing the LoRA adapter checkpoint
-CHECKPOINT_GDRIVE_URL = "https://drive.google.com/drive/folders/18RNkzvGCehTvi6J1vqV4hb8E9_fkmvXR?usp=drive_link"
+# Google Drive folders containing the LoRA adapter checkpoint.
+# The first URL is the preferred source; later URLs are fallbacks.
+CHECKPOINT_GDRIVE_URLS = [
+    url.strip()
+    for url in os.environ.get("MAGMA_CHECKPOINT_URLS", "").split(",")
+    if url.strip()
+] or [
+    "https://drive.google.com/drive/folders/15Q9pnO5pTq22qDcZi-hYRSY4M34nb20U?usp=sharing",
+    "https://drive.google.com/drive/folders/18RNkzvGCehTvi6J1vqV4hb8E9_fkmvXR?usp=drive_link",
+]
 
 INSTRUCTION_TEMPLATE = (
     "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
@@ -198,14 +206,40 @@ def _ensure_checkpoint() -> None:
         return
 
     logger.info(f"Checkpoint not found at {CHECKPOINT_LOCAL_DIR}. Downloading from Google Drive …")
-    CHECKPOINT_LOCAL_DIR.mkdir(parents=True, exist_ok=True)
-    _download_checkpoint_folder(CHECKPOINT_GDRIVE_URL, CHECKPOINT_LOCAL_DIR)
+    last_exc = None
 
-    if not _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
-        raise RuntimeError(
-            f"Checkpoint in {CHECKPOINT_LOCAL_DIR} is incomplete after download. "
-            "Expected adapter_config.json and adapter_model.* files."
+    for idx, checkpoint_url in enumerate(CHECKPOINT_GDRIVE_URLS, start=1):
+        logger.info(
+            "Trying checkpoint source %s/%s: %s",
+            idx,
+            len(CHECKPOINT_GDRIVE_URLS),
+            checkpoint_url,
         )
+
+        if CHECKPOINT_LOCAL_DIR.exists():
+            shutil.rmtree(CHECKPOINT_LOCAL_DIR)
+        CHECKPOINT_LOCAL_DIR.mkdir(parents=True, exist_ok=True)
+
+        try:
+            _download_checkpoint_folder(checkpoint_url, CHECKPOINT_LOCAL_DIR)
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(f"Checkpoint download failed from {checkpoint_url}: {exc}")
+        else:
+            if _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
+                logger.info(f"Checkpoint downloaded successfully from {checkpoint_url}")
+                return
+            logger.warning(
+                f"Checkpoint downloaded from {checkpoint_url} but is incomplete at {CHECKPOINT_LOCAL_DIR}"
+            )
+
+        if CHECKPOINT_LOCAL_DIR.exists() and not _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
+            shutil.rmtree(CHECKPOINT_LOCAL_DIR)
+
+    raise RuntimeError(
+        f"Checkpoint in {CHECKPOINT_LOCAL_DIR} is incomplete after trying all configured URLs. "
+        f"Tried: {CHECKPOINT_GDRIVE_URLS}"
+    ) from last_exc
 
 
 def load_magma():
