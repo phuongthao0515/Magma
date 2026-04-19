@@ -39,7 +39,7 @@
     ]
   },
   "two_step_font_size": {
-    "prompt": "Click the font size dropdown on the Home tab in Microsoft Word, then click 14.",
+    "prompt": "Click the font size dropdown on the Home tab in Microsoft Word, then choose the to change the font size to 14.",
     "max_steps": 2,
     "steps": [
       {
