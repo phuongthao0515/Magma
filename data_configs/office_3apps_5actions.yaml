@@ -1,0 +1,8 @@
+DATA_PATH:
+  - "datasets/agentnet/3_apps_combined_5actions/train_3_apps_5actions.json"
+IMAGE_FOLDER:
+  - "datasets/agentnet/3_apps_combined_5actions/images"
+DATA_PATH_VAL:
+  - "datasets/agentnet/3_apps_combined_5actions/val_3_apps_5actions.json"
+IMAGE_FOLDER_VAL:
+  - "datasets/agentnet/3_apps_combined_5actions/images"
