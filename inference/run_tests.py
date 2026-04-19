@@ -22,15 +22,16 @@ from tqdm import tqdm
 PROJECT_ROOT = "/home/thaole/thao_le/Magma"
 BASE_MODEL = "microsoft/Magma-8B"
 # CHECKPOINT_PATH = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3400"
-CHECKPOINT_PATH="/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions/checkpoint-3400"
+CHECKPOINT_PATH="/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions/checkpoint-3000"
 IMG_SIZE = 768
 TEST_CASES_JSONS = [
     ("word", "/home/thaole/thao_le/Magma/inference/tests/test_cases_word_v2.json"),
     ("excel", "/home/thaole/thao_le/Magma/inference/tests/test_cases_excel.json"),
     ("powerpoint", "/home/thaole/thao_le/Magma/inference/tests/test_cases_powerpoint.json"),
+    ("terminate", "/home/thaole/thao_le/Magma/inference/tests/test_cases_terminate.json"),
 ]
 RESULTS_DIR = "/home/thaole/thao_le/Magma/inference/tests/results"
-RESULTS_FILENAME = "test_results_exp16_3apps_5actions_3400_beam2.json"
+RESULTS_FILENAME = "test_results_exp16_3apps_5actions_3000_beam2_with_terminate.json"
 
 INSTRUCTION_TEMPLATE = (
     "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
