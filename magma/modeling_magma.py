@@ -786,8 +786,10 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
             logits = shift_logits # dummy logits
             shift_labels = labels[..., 1:][valid_mask].contiguous()
             shift_labels = shift_labels.to(shift_logits.device)
-            loss_fct = nn.CrossEntropyLoss()
-            loss = loss_fct(shift_logits, shift_labels)
+            from magma.focal_loss import decomposed_focal_loss
+            FOCAL_GAMMA = getattr(self.config, 'focal_gamma', 2.0)
+            FOCAL_LAMBDA = getattr(self.config, 'focal_lambda', 0.5)
+            loss, focal_loss_info = decomposed_focal_loss(shift_logits, shift_labels, gamma=FOCAL_GAMMA, lambda_mark=FOCAL_LAMBDA)
 
             # localize the positions for shift_labels where the id is in betweek [config.tokenizer_vocab_size-256, config.tokenizer_vocab_size]
             valid_indices = (shift_labels<self.config.tokenizer_vocab_size) & (shift_labels>=self.config.tokenizer_vocab_size-256)
@@ -806,11 +808,19 @@ class MagmaForCausalLM(MagmaPreTrainedModel):
                 action_accuracy = torch.cat(action_accuracy_gather)
 
                 if dist.get_rank() == 0:
+                    log_dict = {**focal_loss_info}
                     if action_accuracy.mean() == 0:
-                        wandb.log({"action_accuracy": action_accuracy.mean().item()})
+                        log_dict["action_accuracy"] = action_accuracy.mean().item()
                     else:
                         action_accuracy = action_accuracy[action_accuracy != 0]
-                        wandb.log({"action_accuracy": action_accuracy.mean().item()})
+                        log_dict["action_accuracy"] = action_accuracy.mean().item()
+                    wandb.log(log_dict)
+            else:
+                # Single GPU — log focal loss components directly
+                wandb.log({
+                    **focal_loss_info,
+                    "action_accuracy": action_accuracy.item(),
+                })
         else:
             logits = self.language_model.lm_head(hidden_states)
             logits = logits.float()

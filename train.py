@@ -549,8 +549,10 @@ def train():
     model.config.mm_use_som_tom_orig_img = model_args.mm_use_som_tom_orig_img
     model.config.spatial_quant_size = model_args.spatial_quant_size
     model.config.img_size = model_args.img_size
-    model.config.use_cache = False    
-    
+    model.config.use_cache = False
+    model.config.focal_gamma = 2.0
+    model.config.focal_lambda = 0.5
+
     model.config.vision_config['img_anyres_strategy'] = model_args.img_anyres_strategy
 
     data_module = make_supervised_data_module(processor=magma_processor,

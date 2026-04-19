@@ -22,10 +22,14 @@ import wandb
 
 # ============ CONFIGURATION ============
 BASE_MODEL = "microsoft/Magma-8B"
-CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-word-som-reduced-100-r32-a64-lr5e5/"
-VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100/val.json"
-IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100"
-RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/word_som_reduced_100_r32_a64_lr5e5_eval"
+CHECKPOINT_DIR = "/home/thaole/thao_le/Magma/checkpoints/finetune-3apps-r32-a64-maxlen2560-focal-marks/checkpoint-3200"
+VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/3_apps_combined/val_3_apps_4actions.json"
+IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/3_apps_combined/images"
+RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/eval_3apps_focal_marks"
+
+# VAL_JSON = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100/val_4actions.json"                                                    
+# IMAGE_DIR = "/home/thaole/thao_le/Magma/datasets/agentnet/word/som-reduced-100"                                                                     
+# RESULTS_DIR = "/home/thaole/thao_le/Magma/results_new/eval_3apps_on_word_val"
 MAX_SAMPLES = None  # Set to a number for quick testing, e.g. 50
 BATCH_SIZE = 1 # Increase for faster eval, decrease if OOM
 INCLUDE_BASE = False  # Set True to also evaluate base model without LoRA
@@ -291,7 +295,7 @@ def main():
     patch_pytorch()
 
     # Init wandb
-    wandb.init(project="magma-word-som", name="eval-som-reduced-100-r32-a64-lr5e5", job_type="eval")
+    wandb.init(project="magma-word-som", name="eval-4actions-focal-r8-vision", job_type="eval")
 
     # Load val data
     print(f"Loading val data from: {VAL_JSON}")
