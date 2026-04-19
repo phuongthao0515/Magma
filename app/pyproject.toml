@@ -41,3 +41,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: image-based integration tests that exercise the real Magma/OmniParser pipeline",
+]

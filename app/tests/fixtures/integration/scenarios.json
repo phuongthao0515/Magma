@@ -1,0 +1,65 @@
+{
+  "one_step": {
+    "prompt": "Click the Bold button on the Home tab in Microsoft Word.",
+    "max_steps": 1,
+    "steps": [
+      {
+        "image": "one_step/step_0.png",
+        "expected_status": "in_progress",
+        "expected_action_type": "click",
+        "expected_parameters": {
+          "button": "left",
+          "clicks": 1
+        }
+      }
+    ]
+  },
+  "two_step": {
+    "prompt": "Click the Bold button on the Home tab in Microsoft Word, then type \"Hello world\".",
+    "max_steps": 2,
+    "steps": [
+      {
+        "image": "two_step/step_0.png",
+        "expected_status": "in_progress",
+        "expected_action_type": "click",
+        "expected_parameters": {
+          "button": "left",
+          "clicks": 1
+        }
+      },
+      {
+        "image": "two_step/step_1.png",
+        "expected_status": "in_progress",
+        "expected_action_type": "type",
+        "expected_parameters": {
+          "text": "Hello world"
+        },
+        "expected_pyautogui_call": "pyautogui.write('Hello world', interval=0.05)"
+      }
+    ]
+  },
+  "two_step_font_size": {
+    "prompt": "Click the font size dropdown on the Home tab in Microsoft Word, then click 14.",
+    "max_steps": 2,
+    "steps": [
+      {
+        "image": "two_step_font_size/step_0.png",
+        "expected_status": "in_progress",
+        "expected_action_type": "click",
+        "expected_parameters": {
+          "button": "left",
+          "clicks": 1
+        }
+      },
+      {
+        "image": "two_step_font_size/step_1.png",
+        "expected_status": "in_progress",
+        "expected_action_type": "click",
+        "expected_parameters": {
+          "button": "left",
+          "clicks": 1
+        }
+      }
+    ]
+  }
+}

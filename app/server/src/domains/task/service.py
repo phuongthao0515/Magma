@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import logging
 from pathlib import Path
 
@@ -48,6 +49,37 @@ def _save_process_data(task: TaskDAO, screenshot_b64: str, step: int) -> None:
     screenshot_file.write_bytes(base64.b64decode(screenshot_b64))
 
     logger.info(f"Saved process data for task {task.id} step {step} → {task_dir}")
+
+
+def _save_model_output_data(
+    task: TaskDAO,
+    step: int,
+    previous_actions: str,
+    result: dict,
+    som_image_path: Path | None = None,
+) -> None:
+    """Save structured model output for the current step."""
+    task_dir = PROCESS_OUTPUT_DIR / task.id
+    task_dir.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "task_id": task.id,
+        "step": step,
+        "prompt": task.prompt,
+        "previous_actions": previous_actions,
+        "model_output": {
+            "action": result.get("action"),
+            "x": result.get("x"),
+            "y": result.get("y"),
+            "value": result.get("value"),
+            "mark_id": result.get("mark_id"),
+            "raw_response": result.get("raw_response"),
+        },
+        "som_image_path": str(som_image_path) if som_image_path is not None else None,
+    }
+
+    output_file = task_dir / f"step_{step:03d}_model_output.json"
+    output_file.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _decode_screenshot(screenshot_b64: str) -> Image.Image:
@@ -113,11 +145,11 @@ class TaskService:
                 task_id=task.id,
                 action=ActionDAO(
                     action_type=ActionType.DONE,
-                    description="Max steps exceeded",
+                    description="Max steps exceeded, task marked as failed",
                 ),
                 status=TaskStatus.FAILED,
                 step=payload.step,
-                message="Max steps exceeded",
+                message="Max steps exceeded, task marked as failed",
             )
 
         # --- Real model inference ---
@@ -132,11 +164,23 @@ class TaskService:
         result = infer(image, task.prompt, previous_actions=prev)
 
         # Save SoM-annotated image for debugging
-        som_image = result.pop("som_image", None)
+        som_image = result.get("som_image")
+        som_image_path = None
         if som_image is not None:
             task_dir = PROCESS_OUTPUT_DIR / task.id
             task_dir.mkdir(parents=True, exist_ok=True)
-            som_image.save(task_dir / f"step_{payload.step:03d}_som.png")
+            som_image_path = task_dir / f"step_{payload.step:03d}_som.png"
+            som_image.save(som_image_path)
+
+        _save_model_output_data(
+            task=task,
+            step=payload.step,
+            previous_actions=prev,
+            result=result,
+            som_image_path=som_image_path,
+        )
+
+        result.pop("som_image", None)
 
         predicted = result["action"]
         action_type = _ACTION_MAP.get(predicted, ActionType.DONE)
@@ -161,11 +205,13 @@ class TaskService:
 
         # Check if same as previous action → likely done or stuck
         is_done = action.action_type == ActionType.DONE
+        repeated_action = False
         if not is_done and task.actions_history:
             prev = task.actions_history[-1]
             if (prev.action_type == action.action_type
                     and prev.parameters == action.parameters):
                 is_done = True
+                repeated_action = True
                 logger.info(f"Task {task.id}: repeated action detected — marking as done")
 
         # Update task state
@@ -178,7 +224,7 @@ class TaskService:
             action=action,
             status=task.status,
             step=task.current_step,
-            message="Task completed (repeated action)" if is_done and task.actions_history else
+            message="Task completed (repeated action)" if repeated_action else
                     "Task completed" if is_done else f"Executing step {task.current_step}",
         )
 

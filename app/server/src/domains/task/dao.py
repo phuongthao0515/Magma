@@ -71,7 +71,7 @@ class TaskDAO(BaseModel):
     prompt: str
     status: TaskStatus = TaskStatus.PENDING
     current_step: int = 0
-    max_steps: int = 5
+    max_steps: int = 2
     actions_history: list[ActionDAO] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
