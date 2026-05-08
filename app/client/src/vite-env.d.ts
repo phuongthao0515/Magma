@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface WindowConfig {
-  baseApiUrl: string;
+  baseApiUrl?: string;
+  agentApiUrl?: string;
 }
 
 declare global {

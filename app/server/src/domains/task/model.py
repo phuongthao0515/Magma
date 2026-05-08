@@ -8,12 +8,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import random
 import re
-import shutil
-import time
 from pathlib import Path
 
-import gdown
 import torch
 import torch.nn as nn
 from huggingface_hub import snapshot_download
@@ -33,14 +32,27 @@ logger = logging.getLogger(__name__)
 BASE_MODEL = "microsoft/Magma-8B"
 MODEL_IMAGE_SIZE = 768
 
+USE_MOCK_MODEL = os.environ.get("USE_MOCK_MODEL", "0").lower() in ("1", "true", "yes", "on")
+MOCK_MODEL_ACTION = os.environ.get("MOCK_MODEL_ACTION", "CLICK").upper()
+MOCK_MODEL_VALUE = os.environ.get("MOCK_MODEL_VALUE")
+MOCK_MODEL_X = os.environ.get("MOCK_MODEL_X")
+MOCK_MODEL_Y = os.environ.get("MOCK_MODEL_Y")
+MOCK_MODEL_TERMINATE_AFTER_CLICK = os.environ.get(
+    "MOCK_MODEL_TERMINATE_AFTER_CLICK", "1"
+).lower() in ("1", "true", "yes", "on")
+
 # Checkpoint – will be downloaded from HuggingFace or Google Drive on first run.
 # Override via env var MAGMA_CHECKPOINT_DIR if you have a local copy.
-import os
 
 CHECKPOINT_LOCAL_DIR = Path(
     os.environ.get(
         "MAGMA_CHECKPOINT_DIR",
-        str(Path(__file__).resolve().parents[5] / "checkpoints" / "finetune-3apps-r32-a64-maxlen2560-focal-marks" / "checkpoint-3400"),
+        str(
+            Path(__file__).resolve().parents[5]
+            / "checkpoints"
+            / "finetune-3apps-r32-a64-maxlen2560-focal-marks-5actions"
+            / "checkpoint-3300"
+        ),
     )
 )
 
@@ -53,21 +65,14 @@ WEIGHTS_DIR = Path(
 )
 OMNIPARSER_MODEL_PATH = WEIGHTS_DIR / "icon_detect" / "model.pt"
 
-# Google Drive folders containing the LoRA adapter checkpoint.
-# The first URL is the preferred source; later URLs are fallbacks.
-CHECKPOINT_GDRIVE_URLS = [
-    url.strip()
-    for url in os.environ.get("MAGMA_CHECKPOINT_URLS", "").split(",")
-    if url.strip()
-] or [
-    "https://drive.google.com/drive/folders/15Q9pnO5pTq22qDcZi-hYRSY4M34nb20U?usp=sharing",
-    "https://drive.google.com/drive/folders/18RNkzvGCehTvi6J1vqV4hb8E9_fkmvXR?usp=drive_link",
-]
+# LoRA adapter repo on HuggingFace Hub. Set MAGMA_LORA_REPO to "<user>/<repo>".
+# If unset, the checkpoint must already exist at MAGMA_CHECKPOINT_DIR.
+LORA_REPO_ID = os.environ.get("MAGMA_LORA_REPO", "")
 
 INSTRUCTION_TEMPLATE = (
     "Imagine that you are imitating humans doing GUI navigation step by step.\n\n"
     "You can perform actions such as CLICK, DOUBLE_CLICK, RIGHT_CLICK, MIDDLE_CLICK, "
-    "MOVE, DRAG, SCROLL, HSCROLL, TYPE, PRESS, HOTKEY.\n\n"
+    "MOVE, DRAG, SCROLL, HSCROLL, TYPE, PRESS, HOTKEY, TERMINATE.\n\n"
     "Output format must be:\n"
     '{{"ACTION": action_type, "MARK": numeric_id, "VALUE": text_or_null}}\n\n'
     "Task: {task_prompt}\n\n"
@@ -88,12 +93,17 @@ if not hasattr(torch, "_original_sum_backup"):
     def _patched_sum(input, *args, **kwargs):
         if isinstance(input, bool):
             input = torch.tensor(input, dtype=torch.long)
-        elif isinstance(input, torch.Tensor) and input.dtype == torch.bool and (len(args) > 0 or "dim" in kwargs):
+        elif (
+            isinstance(input, torch.Tensor)
+            and input.dtype == torch.bool
+            and (len(args) > 0 or "dim" in kwargs)
+        ):
             input = input.long()
         return torch._original_sum_backup(input, *args, **kwargs)
 
     torch.sum = _patched_sum
     logger.info("Applied torch.sum bool-tensor compatibility patch")
+
 
 # ---------------------------------------------------------------------------
 # Safe weight init patch (from notebook)
@@ -139,7 +149,11 @@ def _download_omniparser_weights() -> None:
         return
     logger.info("Downloading OmniParser-v2.0 weights from HuggingFace …")
     WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
-    snapshot_download(repo_id="microsoft/OmniParser-v2.0", local_dir=str(WEIGHTS_DIR), local_dir_use_symlinks=False)
+    snapshot_download(
+        repo_id="microsoft/OmniParser-v2.0",
+        local_dir=str(WEIGHTS_DIR),
+        local_dir_use_symlinks=False,
+    )
 
 
 def load_yolo() -> YOLO:
@@ -159,87 +173,38 @@ def load_yolo() -> YOLO:
 # ---------------------------------------------------------------------------
 def _has_valid_checkpoint(path: Path) -> bool:
     has_config = (path / "adapter_config.json").exists()
-    has_weights = (path / "adapter_model.safetensors").exists() or (path / "adapter_model.bin").exists()
+    has_weights = (path / "adapter_model.safetensors").exists() or (
+        path / "adapter_model.bin"
+    ).exists()
     return has_config and has_weights
 
 
-def _download_checkpoint_folder(url: str, output_dir: Path, retries: int = 3) -> None:
-    """Download LoRA adapter checkpoint from Google Drive (matching notebook retry logic)."""
-    last_exc = None
-    for attempt in range(1, retries + 1):
-        try:
-            logger.info(f"Checkpoint download attempt {attempt}/{retries} (use_cookies=False)")
-            gdown.download_folder(
-                url=url,
-                output=str(output_dir),
-                quiet=False,
-                use_cookies=False,
-                remaining_ok=False,
-            )
-            return
-        except Exception as exc:
-            last_exc = exc
-            logger.warning(f"Checkpoint download failed on attempt {attempt}: {exc}")
-            if attempt < retries:
-                time.sleep(5 * attempt)
-
-    logger.info("Retrying checkpoint download with use_cookies=True …")
-    try:
-        gdown.download_folder(
-            url=url,
-            output=str(output_dir),
-            quiet=False,
-            use_cookies=True,
-            remaining_ok=False,
-        )
-    except Exception as exc:
-        raise RuntimeError(
-            "Google Drive blocked automated folder download (rate-limit or anti-bot challenge). "
-            "Wait and retry, or mirror the checkpoint outside Drive and update MAGMA_CHECKPOINT_DIR."
-        ) from (last_exc or exc)
-
-
 def _ensure_checkpoint() -> None:
-    """Download the LoRA adapter from Google Drive if not already present."""
+    """Download the LoRA adapter from HuggingFace Hub if not already present."""
     if _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
         logger.info(f"Using cached checkpoint in {CHECKPOINT_LOCAL_DIR}")
         return
 
-    logger.info(f"Checkpoint not found at {CHECKPOINT_LOCAL_DIR}. Downloading from Google Drive …")
-    last_exc = None
-
-    for idx, checkpoint_url in enumerate(CHECKPOINT_GDRIVE_URLS, start=1):
-        logger.info(
-            "Trying checkpoint source %s/%s: %s",
-            idx,
-            len(CHECKPOINT_GDRIVE_URLS),
-            checkpoint_url,
+    if not LORA_REPO_ID:
+        raise RuntimeError(
+            f"Checkpoint not found at {CHECKPOINT_LOCAL_DIR} and MAGMA_LORA_REPO is not set. "
+            "Set MAGMA_LORA_REPO=<user>/<repo> to pull the LoRA adapter from HuggingFace Hub, "
+            "or point MAGMA_CHECKPOINT_DIR at a local adapter directory."
         )
 
-        if CHECKPOINT_LOCAL_DIR.exists():
-            shutil.rmtree(CHECKPOINT_LOCAL_DIR)
-        CHECKPOINT_LOCAL_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info(
+        f"Checkpoint not found at {CHECKPOINT_LOCAL_DIR}. "
+        f"Downloading from HuggingFace Hub: {LORA_REPO_ID}"
+    )
+    CHECKPOINT_LOCAL_DIR.mkdir(parents=True, exist_ok=True)
+    snapshot_download(repo_id=LORA_REPO_ID, local_dir=str(CHECKPOINT_LOCAL_DIR))
 
-        try:
-            _download_checkpoint_folder(checkpoint_url, CHECKPOINT_LOCAL_DIR)
-        except Exception as exc:
-            last_exc = exc
-            logger.warning(f"Checkpoint download failed from {checkpoint_url}: {exc}")
-        else:
-            if _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
-                logger.info(f"Checkpoint downloaded successfully from {checkpoint_url}")
-                return
-            logger.warning(
-                f"Checkpoint downloaded from {checkpoint_url} but is incomplete at {CHECKPOINT_LOCAL_DIR}"
-            )
-
-        if CHECKPOINT_LOCAL_DIR.exists() and not _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
-            shutil.rmtree(CHECKPOINT_LOCAL_DIR)
-
-    raise RuntimeError(
-        f"Checkpoint in {CHECKPOINT_LOCAL_DIR} is incomplete after trying all configured URLs. "
-        f"Tried: {CHECKPOINT_GDRIVE_URLS}"
-    ) from last_exc
+    if not _has_valid_checkpoint(CHECKPOINT_LOCAL_DIR):
+        raise RuntimeError(
+            f"Downloaded checkpoint from {LORA_REPO_ID} is incomplete at {CHECKPOINT_LOCAL_DIR} "
+            "(missing adapter_config.json or adapter_model.safetensors)."
+        )
+    logger.info(f"Checkpoint downloaded successfully from {LORA_REPO_ID}")
 
 
 def load_magma():
@@ -255,7 +220,9 @@ def load_magma():
 
     config = AutoConfig.from_pretrained(BASE_MODEL, trust_remote_code=True)
     if hasattr(config, "auto_map") and "AutoModelForCausalLM" in config.auto_map:
-        model_class = get_class_from_dynamic_module(config.auto_map["AutoModelForCausalLM"], BASE_MODEL)
+        model_class = get_class_from_dynamic_module(
+            config.auto_map["AutoModelForCausalLM"], BASE_MODEL
+        )
     else:
         model_class = AutoModelForCausalLM._model_mapping[type(config)]
 
@@ -309,7 +276,9 @@ def load_magma():
     model = PeftModel.from_pretrained(model, str(CHECKPOINT_LOCAL_DIR))
 
     processor = AutoProcessor.from_pretrained(BASE_MODEL, trust_remote_code=True)
-    if hasattr(processor, "image_processor") and hasattr(processor.image_processor, "base_img_size"):
+    if hasattr(processor, "image_processor") and hasattr(
+        processor.image_processor, "base_img_size"
+    ):
         processor.image_processor.base_img_size = MODEL_IMAGE_SIZE
         logger.info(f"Set processor.image_processor.base_img_size={MODEL_IMAGE_SIZE}")
     model.generation_config.pad_token_id = processor.tokenizer.pad_token_id
@@ -324,6 +293,9 @@ def load_magma():
 # Warm-up: call at server startup
 # ---------------------------------------------------------------------------
 def warmup() -> None:
+    if USE_MOCK_MODEL:
+        logger.info("USE_MOCK_MODEL is enabled; skipping model warmup")
+        return
     load_yolo()
     load_magma()
     logger.info("All models warmed up and ready")
@@ -352,6 +324,16 @@ def parse_action(text: str) -> dict:
     return {"raw_response": text, "parse_error": True}
 
 
+def _random_mock_coordinate(axis_size: int) -> int:
+    if axis_size <= 1:
+        return 0
+    low = max(0, int(axis_size * 0.1))
+    high = min(axis_size - 1, int(axis_size * 0.9))
+    if low > high:
+        low, high = 0, axis_size - 1
+    return random.randint(low, high)
+
+
 # ---------------------------------------------------------------------------
 # Inference: screenshot + prompt → predicted action with coordinates
 # ---------------------------------------------------------------------------
@@ -366,6 +348,51 @@ def infer(image: Image.Image, task_prompt: str, previous_actions: str = "None") 
         mark_id  – numeric mark index predicted by model (or None)
         raw_response – raw model text output
     """
+    if USE_MOCK_MODEL:
+        logger.info("USE_MOCK_MODEL is enabled; returning mocked inference response")
+        action = MOCK_MODEL_ACTION
+        if (
+            action == "CLICK"
+            and MOCK_MODEL_TERMINATE_AFTER_CLICK
+            and previous_actions.strip().lower() != "none"
+        ):
+            action = "TERMINATE"
+
+        if action == "CLICK":
+            x = (
+                int(MOCK_MODEL_X)
+                if MOCK_MODEL_X is not None
+                else _random_mock_coordinate(image.width)
+            )
+            y = (
+                int(MOCK_MODEL_Y)
+                if MOCK_MODEL_Y is not None
+                else _random_mock_coordinate(image.height)
+            )
+        else:
+            x = int(MOCK_MODEL_X) if MOCK_MODEL_X is not None else None
+            y = int(MOCK_MODEL_Y) if MOCK_MODEL_Y is not None else None
+
+        raw_response = json.dumps(
+            {
+                "ACTION": action,
+                "MARK": None,
+                "VALUE": MOCK_MODEL_VALUE,
+                "mock": True,
+                "task": task_prompt,
+                "previous_actions": previous_actions,
+            }
+        )
+        return {
+            "action": action,
+            "x": x,
+            "y": y,
+            "value": MOCK_MODEL_VALUE,
+            "mark_id": None,
+            "raw_response": raw_response,
+            "som_image": image.copy(),
+        }
+
     model, processor = load_magma()
     yolo = load_yolo()
 
@@ -384,7 +411,9 @@ def infer(image: Image.Image, task_prompt: str, previous_actions: str = "None") 
         {"role": "system", "content": "You are agent that can see, talk and act."},
         {"role": "user", "content": full_prompt},
     ]
-    formatted_prompt = processor.tokenizer.apply_chat_template(convs, tokenize=False, add_generation_prompt=True)
+    formatted_prompt = processor.tokenizer.apply_chat_template(
+        convs, tokenize=False, add_generation_prompt=True
+    )
 
     if hasattr(model, "config") and getattr(model.config, "mm_use_image_start_end", False):
         formatted_prompt = formatted_prompt.replace("<image>", "<image_start><image><image_end>")
