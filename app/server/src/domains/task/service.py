@@ -27,12 +27,14 @@ PROCESS_OUTPUT_DIR = Path(__file__).resolve().parents[3] / "output"
 # In-memory task store (replace with DB in production)
 _tasks: dict[str, TaskDAO] = {}
 
-# Map model ACTION strings → server ActionType (4 actions only)
+# Map model ACTION strings → server ActionType. TERMINATE routes to DONE so the
+# task is marked complete when the model signals the task is already finished.
 _ACTION_MAP: dict[str, ActionType] = {
     "CLICK": ActionType.CLICK,
     "TYPE": ActionType.TYPE,
     "DOUBLE_CLICK": ActionType.DOUBLE_CLICK,
     "RIGHT_CLICK": ActionType.RIGHT_CLICK,
+    "TERMINATE": ActionType.DONE,
 }
 
 
@@ -106,13 +108,24 @@ class TaskService:
 
     @staticmethod
     def claim_pending_task() -> TaskDAO | None:
-        """Find the oldest pending task and move it to in_progress for the agent."""
+        """Find the oldest pending task and move it to in_progress for dispatch."""
         for task in _tasks.values():
             if task.status == TaskStatus.PENDING:
                 task.status = TaskStatus.IN_PROGRESS
-                logger.info(f"Task claimed by agent: {task.id}")
+                logger.info(f"Task claimed for dispatch: {task.id}")
                 return task
         return None
+
+    @staticmethod
+    def claim_task(task_id: str) -> TaskDAO | None:
+        """Move a specific pending task to in_progress for dispatch."""
+        task = _tasks.get(task_id)
+        if task is None:
+            return None
+        if task.status == TaskStatus.PENDING:
+            task.status = TaskStatus.IN_PROGRESS
+            logger.info(f"Task claimed for dispatch: {task.id}")
+        return task
 
     @staticmethod
     def process_screenshot(payload: TaskProcessDAO) -> TaskProcessResponseDAO:
@@ -208,8 +221,7 @@ class TaskService:
         repeated_action = False
         if not is_done and task.actions_history:
             prev = task.actions_history[-1]
-            if (prev.action_type == action.action_type
-                    and prev.parameters == action.parameters):
+            if prev.action_type == action.action_type and prev.parameters == action.parameters:
                 is_done = True
                 repeated_action = True
                 logger.info(f"Task {task.id}: repeated action detected — marking as done")
@@ -224,8 +236,11 @@ class TaskService:
             action=action,
             status=task.status,
             step=task.current_step,
-            message="Task completed (repeated action)" if repeated_action else
-                    "Task completed" if is_done else f"Executing step {task.current_step}",
+            message=(
+                "Task completed (repeated action)"
+                if repeated_action
+                else "Task completed" if is_done else f"Executing step {task.current_step}"
+            ),
         )
 
     @staticmethod

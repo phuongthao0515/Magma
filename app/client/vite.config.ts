@@ -4,14 +4,16 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
 export default defineConfig({
+  base: "./",
   plugins: [TanStackRouterVite({}), react(), tailwindcss()],
   server: {
     port: 4000,
     host: "0.0.0.0",
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: process.env.VITE_BACKEND_URL || "http://localhost:8000",
         changeOrigin: true,
+        secure: true,
       },
     },
   },
